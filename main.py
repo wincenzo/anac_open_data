@@ -36,6 +36,7 @@ def check_columns(ops):
                     else:
                         missing[dir.name].append(col)
                 break
+
     return missing
 
 
