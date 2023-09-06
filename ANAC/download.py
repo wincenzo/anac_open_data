@@ -12,7 +12,7 @@ from .statements import (DEFAULT_DOWNLOAD_PATH,
                          TABLES)
 
 
-def download(database, 
+def download(ops,
              download_dir=DEFAULT_DOWNLOAD_PATH,
              tables=[]):
     '''
@@ -30,7 +30,7 @@ def download(database,
                     break
             else:
                 logging.warning(f'NEW: "{pack}" available')
-            
+
             if not tables or table in tables:
 
                 tab_path = os.path.join(download_dir, table, pack)
@@ -45,27 +45,20 @@ def download(database,
                         file_name = f'{name}.json'
                         file_path = os.path.join(tab_path, file_name)
 
-                        loaded = database.execute(GET_LOADED, [table])
-
-                        loaded = any(filter(
-                            lambda l: l['file_name'] == file_name, loaded))
-
                         if not os.path.isfile(file_path):
-                            if not loaded:
-                                logging.info(f'DOWNLOAD: "{file_path}"')
+                            if file_name not in ops.loaded:
+                                logging.info(f'DOWNLOAD : "{file_path}"')
 
-                                try:
-                                    with urlopen(url) as resp:
-                                        zfile = BytesIO(resp.read())
-                                        with ZipFile(zfile) as zfile:
-                                            zfile.extractall(tab_path)
-
-                                except Exception as e:
-                                    logging.exception(f'{e}')
+                                with urlopen(url) as resp:
+                                    zfile = BytesIO(resp.read())
+                                    with ZipFile(zfile) as zfile:
+                                        zfile.extractall(tab_path)
 
                             else:
-                                logging.warning(f'"{file_path}" already loaded')
+                                logging.warning(
+                                    f'"{file_path}" already loaded')
                         else:
-                            logging.warning(f'"{file_path}" already donwloaded')
+                            logging.warning(
+                                f'"{file_path}" already donwloaded')
 
-        logging.info('DOWNLOAD COMPLETED')
+        logging.info('DOWNLOAD : COMPLETED')

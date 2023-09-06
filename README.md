@@ -17,13 +17,14 @@ Inserire nella variabile ```CREDENTIALS``` i dati corrispondenti per la connessi
 
 Inserire nella variabile ```DEFAULT_DOWNLOAD_PATH``` il percorso di download. Di default salverà i file nella directory  ```/anac_json```
 
-# Esecuzione
+# Definizione del DataBase
 
-```python main.py loadirs [OPTIONS]```
+```python main.py load [OPTIONS]```
 
-eseguito senza opzioni esegue il download e l'inserimento di tutti i file disponbili sul portale ANAC
+esegue il download e l'inserimento di tutti i file disponbili sul portale ANAC
 
 **options:**
+```-h --help``` restituisce informazioni sui comandi
 
 ```-c --clean``` permette di cancellare i file scaricati, dopo l'inserimento nel db
 
@@ -32,5 +33,11 @@ eseguito senza opzioni esegue il download e l'inserimento di tutti i file dispon
 ```-d --dirs <PATH> ...``` permette di inserire i file contenuti in una o più directory
 
 ```-f --files <PATH> ...``` permette di inserire uno o più file desiderati
+
+# Definizione dell tabella di sintesi
+
+```python main.py sintesi```
+
+esegue tutte le operazioni necessaria alla creazione e inserimento dei dati nella tabella "sintesi"
 
 
