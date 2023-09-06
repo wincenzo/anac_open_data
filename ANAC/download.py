@@ -7,14 +7,11 @@ import os
 from ckanapi import RemoteCKAN
 
 from .statements import (DEFAULT_DOWNLOAD_PATH,
-                         GET_LOADED,
                          URL_ANAC,
                          TABLES)
 
 
-def download(ops,
-             download_dir=DEFAULT_DOWNLOAD_PATH,
-             tables=[]):
+def download(ops, tables=[]):
     '''
     Esegue il download dei file ed organizza la directory di download
     raggruppando i file in base alla tabella di appartenenza
@@ -33,7 +30,7 @@ def download(ops,
 
             if not tables or table in tables:
 
-                tab_path = os.path.join(download_dir, table, pack)
+                tab_path = os.path.join(DEFAULT_DOWNLOAD_PATH, table, pack)
 
                 files = api.action.package_show(id=pack)
 
