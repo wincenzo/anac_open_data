@@ -26,20 +26,29 @@ BATCH_SIZE = 75_000
 
 ###########################  SQL STATEMENTS ##############################
 
-GET_TABLE_COLUMNS = 'SHOW COLUMNS FROM {}.{} WHERE extra = ""'
+#GET_TABLE_COLUMNS = 'SHOW COLUMNS FROM {} WHERE extra = ""'
 
+GET_TABLE_COLUMNS = '''
+    SELECT 
+        COLUMN_NAME
+    FROM 
+        INFORMATION_SCHEMA.COLUMNS
+    WHERE 
+        TABLE_SCHEMA = DATABASE() AND 
+        TABLE_NAME = %s AND 
+        EXTRA = ""
+    '''
 
 GET_ALL_COLUMNS = '''
     SELECT 
-        table_name,
-        column_name
+        TABLE_NAME,
+        COLUMN_NAME
     FROM 
-        information_schema.columns
+        INFORMATION_SCHEMA.COLUMNS
     WHERE 
-        table_schema = DATABASE()
-        AND EXTRA = ""
+        TABLE_SCHEMA = DATABASE() AND 
+        EXTRA = ""
     '''
-
 
 INSERT_TABLES = 'INSERT IGNORE INTO {} ({}) VALUES({})'
 
@@ -47,15 +56,15 @@ HASH_KEY = 'ALTER TABLE {} ADD COLUMN {}_hash BINARY(20) AS (UNHEX(SHA(CONCAT_WS
 
 ADD_ID = 'ALTER TABLE {} ADD COLUMN {}_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY'
 
-CREATE_LOADED = {
-    'loaded': '''
+CREATE_LOADED = '''
     CREATE TABLE IF NOT EXISTS loaded (
+        -- loaded_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         table_name VARCHAR(64) NOT NULL,
         file_name VARCHAR(128) NOT NULL,
         data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
-        KEY idx_loaded_table_name (table_name),
-        UNIQUE KEY loaded_file (table_name, file_name))''',
-}
+        -- KEY idx_loaded_table_name (table_name),
+        PRIMARY KEY id_loaded_file (table_name, file_name))'''
+
 
 GET_LOADED = 'SELECT file_name FROM loaded'
 
@@ -669,7 +678,7 @@ INSERT_SINTESI = '''
     '''
 
 CREATEVIEW_SINTESI_CPV = {
-    'sintesi_cpv': '''
+    'sintesi-cpv': '''
     CREATE OR REPLACE VIEW 
         siap_test.sintesi_cpv AS 
         SELECT 

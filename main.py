@@ -1,88 +1,35 @@
 import argparse
 from collections import defaultdict
+from urllib.request import urlopen
+from io import BytesIO
+from zipfile import ZipFile
+from operator import itemgetter
 import logging
 import os
 from pprint import pprint
 
-import ANAC.download as download
+from ckanapi import RemoteCKAN
+
 import ANAC.load as load
 import ANAC.statements as stmts
 
 
-anac_db = load.DataBase(**stmts.DB_CREDENTIALS)
+cnx = load.DataBase(**stmts.DB_CREDENTIALS)
+ops = load.Operations(
+    database=cnx, downdir=stmts.DEFAULT_DOWNLOAD_PATH)
 
-anac_ops = load.Operations(database=anac_db,
-                           downdir=stmts.DEFAULT_DOWNLOAD_PATH)
 
-
-def check_columns(ops):
-    '''
-    Serve a trovare eventuali colonne presenti nei file,
-    ma assenti nelle tabelle del db
-    '''
-    missing = defaultdict(list)
-    for dir in os.scandir(ops.downdir):
-        sub = next(os.scandir(dir))
-        for f in os.scandir(sub):
-            if os.stat(f).st_size > 0:
-                row = next(ops.reader(f.path, None))
-                row = sorted(row, key=len)
-                db_cols = ops.get_all_columns()[dir.name]
-                for col in row:
-                    for c in sorted(db_cols, reverse=True, key=len):
-                        if col.lower().startswith(c.lower()):
-                            db_cols.remove(c)
-                            break
-                    else:
-                        missing[dir.name].append(col)
+def index(packs):
+    idx = defaultdict(list)
+    for pack in sorted(packs, key=len):
+        for tab in sorted(stmts.TABLES, reverse=True, key=len):
+            if pack.startswith(tab):
+                tab = tab.replace('-', '_')
+                idx[tab].append(pack)
+                idx[tab].sort()
                 break
 
-    return missing
-
-
-def make_database(ops,
-                  tables=[],
-                  dirs=[],
-                  files=[],
-                  clean=False):
-    '''
-    esegue tutte le operazioni necessarie a creare il database:
-    scaricare i file, creare viste e tabelle se non già esistenti,
-    inserire i dati dai file nelle rispettive tabelle, eventualmente
-    cancellare i file già inseriti.
-    '''
-    if not dirs and not files:
-        download.download(anac_ops, tables=tables)
-
-    ops.creator(stmts.CREATE_TABLES,
-                tables=tables,
-                dirs=dirs,
-                files=files,
-                key=True,
-                hash=True)
-
-    ops.creator(stmts.CREATE_LOADED, key=True, hash=False)
-
-    ops.loader(dirs=dirs,
-               files=files,
-               clean=clean,
-               tables=tables)
-
-    logging.info(f'MAKE DB: COMPLETED')
-
-
-def make_sintesi(ops):
-    '''
-    Esegue tutte le operazioni necessarie a creare ed inserire i dati nella
-    tabella "sintesi"
-    '''
-    ops.creator(stmts.CREATE_SINTESI, key=True, hash=True)
-
-    ops.creator(stmts.CREATEVIEW_SINTESI_CPV, key=False, hash=False)
-
-    ops.insert_sintesi()
-
-    logging.info(f'MAKE SINTESI: COMPLETED')
+    return idx
 
 
 if __name__ == '__main__':
@@ -92,40 +39,41 @@ if __name__ == '__main__':
                                        dest='command',
                                        required=True)
 
-    loadirs = subparsers.add_parser('load',
-                                    prog='make_database',
-                                    help='executes all steps for db creation: download files-create tables-insert data')
+    dw_ld = subparsers.add_parser('load',
+                                  prog='make_database',
+                                  help='''executes all steps for db creation: 
+                                 download files-create tables-insert data''')
 
-    loadirs.add_argument('-c', '--clean',
-                         action='store_true',
-                         help='deletes files from download directory after inserting')
+    dw_ld.add_argument('-t', '--tables',
+                       nargs='*',
+                       default=[],
+                       type=str,
+                       metavar='NAME',
+                       help='''provide tables name to insert into db; 
+                      if missing insert all tables''')
 
-    loadirs.add_argument('-t', '--tables',
-                         nargs='*',
-                         default='',
-                         type=str,
-                         metavar='NAME',
-                         help='provide tables name to insert into db; if missing insert all tables')
+    dw_ld.add_argument('-c', '--clean',
+                       action='store_true',
+                       help='deletes file after it is inserted into db')
 
-    loadirs.add_argument('-d', '--dirs',
-                         nargs='*',
-                         default='',
-                         type=str,
-                         metavar='PATH',
-                         help='''provide directories path to insert into db in the form "<download_dir>/<table_name>/directory";
-                         if missing insert whole download directory''')
+    dw_ld.add_argument('-k', '--keep',
+                       nargs='*',
+                       type=str,
+                       metavar='NAME',
+                       help='''provide tables name to keep when 
+                      "clean" option is called''')
 
-    loadirs.add_argument('-f', '--files',
-                         nargs='*',
-                         default='',
-                         type=str,
-                         metavar='PATH',
-                         help='''provide files path to insert into db in the form "<download_dir>/<table_name>/<directory>/file_name";
-                         if missing insert whole download directory''')
+    dw_ld.add_argument('-s', '--skip',
+                       nargs='*',
+                       default=['smartcig'],
+                       type=str,
+                       metavar='NAME',
+                       help='provide tables name to avoid download and load')
 
     sintesi = subparsers.add_parser('sintesi',
                                     prog='make_sintesi',
-                                    help='executes all steps to make the table "sintesi" and create the view "sintesi_cpv"')
+                                    help='''executes all steps to make the table 
+                                    "sintesi" and create the view "sintesi_cpv"''')
 
     check = subparsers.add_parser('check',
                                   prog='check_columns',
@@ -134,15 +82,151 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.command == 'load':
-        make_database(anac_ops,
-                      dirs=args.dirs,
-                      files=args.files,
-                      clean=args.clean,
-                      tables=args.tables)
+        def down_n_load(ops,
+                        skip=args.skip,
+                        tables=args.tables,
+                        clean=args.clean,
+                        keep=args.keep):
+            '''
+            Esegue il download dei files, la creazione delle tabelle e 
+            l'inserimento dei file nelle tabelle controllando che non 
+            siano stati inseriti in precedenza
+            '''
+            if tables:
+                for tab in tables:
+                    assert tab.replace('_', '-') in stmts.TABLES,\
+                        f'table "{tab}" not in database schema'
+
+            with RemoteCKAN(stmts.URL_ANAC) as api:
+                packages = api.action.package_list()
+                pckgs_idx = index(packages)
+
+                tables = tables or packages
+                tables = set(tables) - set(skip)
+
+                for table in sorted(tables):
+                    tot_rows = 0
+                    for pack in pckgs_idx[table]:
+                        pack_path = os.path.join(
+                            stmts.DEFAULT_DOWNLOAD_PATH, table, pack)  # type:ignore
+
+                        results = api.action.package_show(id=pack)
+
+                        for file in results['resources']:
+                            if (file['format'] == 'JSON' and
+                                    file['mimetype'] == 'application/zip'):
+                                url, name = file['url'], file['name']
+
+                                file_name = f'{name}.json'
+                                file_path = os.path.join(
+                                    pack_path, file_name)
+
+                                if file_name not in ops.loaded:
+                                    ops.create(stmts.CREATE_TABLES,
+                                               table, hash=True)
+
+                                    if not os.path.isfile(file_path):
+                                        logging.info(
+                                            f'DOWNLOAD : "{file_path}"')
+
+                                        with urlopen(url) as resp:
+                                            zfile = BytesIO(resp.read())
+                                            with ZipFile(zfile) as zfile:
+                                                zfile.extractall(pack_path)
+                                    else:
+                                        logging.warning(
+                                            f'"{file_path}" already donwloaded')
+
+                                    ops.load(table, file_name, file_path)
+
+                                    if clean and table not in keep:
+                                        try:
+                                            os.remove(file_path)
+                                            logging.info(
+                                                f'"{file_path}" deleted')
+
+                                        except FileNotFoundError:
+                                            ...
+
+                                else:
+                                    logging.warning(
+                                        f'"{file_path}" already loaded')
+
+                    if tot_rows:
+                        logging.info(
+                            f'INSERT : {tot_rows} row inserted into "{table}"')
+
+            # logging.info('COMPLETED')
+
+        def user_tables(ops, tables=args.tables):
+            '''
+            Aggiunge le tabelle "cpv" e "province" non disponibili sul 
+            portale ANAC
+            '''
+            tabs = {'cpv': 'cpv_tree.json',
+                    'province': 'province.json'}
+            
+            for tab in tabs:
+                if not tables or tab in tables:
+                    ops.create(stmts.CREATE_TABLES, tab, hash=True)
+
+                    nrows = 0
+                    path = tabs[tab]
+                    file_name = os.path.basename(path)
+                    if file_name not in ops.loaded:
+                        nrows = ops.load(tab, file_name, path)
+
+                    else:
+                        logging.warning(
+                            f'"{path}" already loaded')
+
+                    if nrows:
+                        logging.info(
+                            f'INSERT : {nrows} row inserted into "{tab}"')
+
+        down_n_load(ops)
+
+        user_tables(ops)
 
     elif args.command == 'sintesi':
-        make_sintesi(anac_ops)
+        def make_sintesi(ops):
+            '''
+            Esegue tutte le operazioni necessarie a creare ed inserire i dati nella
+            tabella "sintesi"
+            '''
+            ops.create(stmts.CREATE_SINTESI, 'sintesi', hash=True)
+            ops.insert_sintesi()
+
+            ops.create(stmts.CREATEVIEW_SINTESI_CPV,
+                       'sintesi-cpv', key=False, hash=False)
+
+        make_sintesi(ops)
 
     elif args.command == 'check':
-        diff = check_columns(anac_ops)
-        pprint(diff)
+        def check_columns(ops):
+            '''
+            Trova eventuali colonne presenti nei file,
+            ma assenti nelle tabelle del db
+            '''
+            missing = defaultdict(list)
+            for dir in os.scandir(ops.downdir):
+                sub = next(os.scandir(dir))
+                # for sub in os.scandir(dir):
+                for f in os.scandir(sub):
+                    if os.stat(f).st_size > 0:
+                        row = next(ops.reader(f.path, refcols=None))
+                        row = sorted(row, key=len)
+
+                        db_cols = list(ops.get_columns(dir.name))
+                        for col in row:
+                            for c in sorted(db_cols, reverse=True, key=len):
+                                if col.lower().startswith(c.lower()):
+                                    db_cols.remove(c)
+                                    break
+                            else:
+                                missing[dir.name].append(col)
+                        break
+            return missing
+
+        missing = check_columns(ops)
+        pprint(missing)

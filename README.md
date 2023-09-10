@@ -24,15 +24,18 @@ Inserire nella variabile ```DEFAULT_DOWNLOAD_PATH``` il percorso di download. Di
 esegue il download e l'inserimento di tutti i file disponbili sul portale ANAC
 
 **options:**
+
 ```-h --help``` restituisce informazioni sui comandi
 
 ```-c --clean``` permette di cancellare i file scaricati, dopo l'inserimento nel db
 
+```-k --keep``` permette di evitare la cancellazione dei file associati alle tabelle indicate quando l'opzione clean 
+è attivata
+
+```-s --skip``` permette di evitare il download dei file ed il caricamento per le tabelle indicate; default: "smartcig",
+per cricare senza omissioni aggungere l'opzione senza argomenti
+
 ```-t --tables <NAME> ...``` permette di scaricare ed inserire i file relativi ad una o più tabelle
-
-```-d --dirs <PATH> ...``` permette di inserire i file contenuti in una o più directory
-
-```-f --files <PATH> ...``` permette di inserire uno o più file desiderati
 
 # Definizione dell tabella di sintesi
 

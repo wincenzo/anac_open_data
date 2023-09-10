@@ -1,20 +1,23 @@
 *
 
-!ANAC/
+!ANAC/*
 !ANAC/__init__.py
 !ANAC/download.py
 !ANAC/load.py
 !ANAC/statements.py
 
-!anac_json/
-!anac_json/*/
-!anac_json/*/*
-!anac_json/cpv/cpv/cpv_tree.json
-!anac_json/province/province/province.json
+#!anac_json/
+#!anac_json/*/
+#!anac_json/*/*
+#!anac_json/cpv/cpv/cpv_tree.json
+#!anac_json/province/province/province.json
 
 !main.py
 !requirements.txt
 !README.md
 
 !.gitignore
+
+!/cpv_tree.json
+!/province.json
 
