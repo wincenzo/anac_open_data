@@ -118,8 +118,7 @@ if __name__ == '__main__':
                                 url, name = file['url'], file['name']
 
                                 file_name = f'{name}.json'
-                                file_path = os.path.join(
-                                    pack_path, file_name)
+                                file_path = os.path.join(pack_path, file_name)
 
                                 if file_name not in ops.loaded:
                                     ops.create(stmts.CREATE_TABLES,
@@ -156,8 +155,6 @@ if __name__ == '__main__':
                         logging.info(
                             f'INSERT : {tot_rows} row inserted into "{table}"')
 
-            # logging.info('COMPLETED')
-
         def user_tables(ops, tables=args.tables):
             '''
             Aggiunge le tabelle "cpv" e "province" non disponibili sul 
@@ -165,7 +162,7 @@ if __name__ == '__main__':
             '''
             tabs = {'cpv': 'cpv_tree.json',
                     'province': 'province.json'}
-            
+
             for tab in tabs:
                 if not tables or tab in tables:
                     ops.create(stmts.CREATE_TABLES, tab, hash=True)

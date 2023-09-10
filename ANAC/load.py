@@ -1,8 +1,6 @@
 
 from itertools import islice
-from collections import defaultdict
 from datetime import datetime
-import errno
 import json
 import logging
 import os
@@ -120,7 +118,7 @@ class Operations:
             TABLE = table.replace('_', '-')
             self.database.execute(stmts[TABLE])
 
-        except errors.Error as e:
+        except errors.DatabaseError as e:
             if e.errno == errorcode.ER_TABLE_EXISTS_ERROR:
                 self.columns = self.get_columns(table)
 
