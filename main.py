@@ -3,7 +3,6 @@ from collections import defaultdict
 from urllib.request import urlopen
 from io import BytesIO
 from zipfile import ZipFile
-from operator import itemgetter
 import logging
 import os
 from pprint import pprint
