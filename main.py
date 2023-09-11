@@ -108,8 +108,8 @@ if __name__ == '__main__':
                     tot_rows = 0
                     for pack in pckgs_idx[table]:
                         pack_path = os.path.join(
-                            stmts.DEFAULT_DOWNLOAD_PATH, table, pack)  # type:ignore
-
+                            stmts.DEFAULT_DOWNLOAD_PATH, table, pack)  
+                        
                         results = api.action.package_show(id=pack)
 
                         for file in results['resources']:
@@ -160,26 +160,26 @@ if __name__ == '__main__':
             Aggiunge le tabelle "cpv" e "province" non disponibili sul 
             portale ANAC
             '''
-            tabs = {'cpv': 'cpv_tree.json',
-                    'province': 'province.json'}
+            tabs = (('cpv', 'cpv_tree.json'), 
+                    ('province', 'province.json'))
 
-            for tab in tabs:
+            for tab, path in tabs:
                 if not tables or tab in tables:
                     ops.create(stmts.CREATE_TABLES, tab, hash=True)
 
-                    nrows = 0
-                    path = tabs[tab]
+                    tot_rows = 0
                     file_name = os.path.basename(path)
                     if file_name not in ops.loaded:
                         nrows = ops.load(tab, file_name, path)
+                        tot_rows += nrows
 
                     else:
                         logging.warning(
                             f'"{path}" already loaded')
 
-                    if nrows:
+                    if tot_rows:
                         logging.info(
-                            f'INSERT : {nrows} row inserted into "{tab}"')
+                            f'INSERT : {tot_rows} row inserted into "{tab}"')
 
         down_n_load(ops)
 
@@ -223,6 +223,7 @@ if __name__ == '__main__':
                             else:
                                 missing[dir.name].append(col)
                         break
+
             return missing
 
         missing = check_columns(ops)
