@@ -115,8 +115,7 @@ class Operations:
         aggiunge "id" primary key ed "hash" unique key.
         '''
         try:
-            TABLE = table.replace('_', '-')
-            self.database.execute(stmts[TABLE])
+            self.database.execute(stmts[table])
 
         except errors.DatabaseError as e:
             if e.errno == errorcode.ER_TABLE_EXISTS_ERROR:

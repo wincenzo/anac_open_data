@@ -23,7 +23,7 @@ def index(packs):
     idx = defaultdict(list)
     for pack in sorted(packs, key=len):
         for tab in sorted(stmts.TABLES, reverse=True, key=len):
-            if pack.startswith(tab):
+            if pack.startswith((tab, tab.replace('_', '-'))):
                 tab = tab.replace('-', '_')
                 idx[tab].append(pack)
                 idx[tab].sort()
@@ -94,7 +94,7 @@ if __name__ == '__main__':
             '''
             if tables:
                 for tab in tables:
-                    assert tab.replace('_', '-') in stmts.TABLES,\
+                    assert tab in stmts.TABLES,\
                         f'table "{tab}" not in database schema'
 
             with RemoteCKAN(stmts.URL_ANAC) as api:
@@ -195,7 +195,7 @@ if __name__ == '__main__':
             ops.insert_sintesi()
 
             ops.create(stmts.CREATEVIEW_SINTESI_CPV,
-                       'sintesi-cpv', key=False, hash=False)
+                       'sintesi_cpv', key=False, hash=False)
 
         make_sintesi(ops)
 
