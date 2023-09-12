@@ -1,3 +1,8 @@
+''' Operations Module
+
+Questo modulo raccoglie tutte le funzioni necessarie a connettersi
+al database, creare la tabelle ed inserire i dati estratti dai dile
+'''
 
 from itertools import islice
 from datetime import datetime
@@ -5,7 +10,7 @@ import json
 import logging
 import os
 
-import mysql.connector as connector
+from mysql import connector
 from mysql.connector import errors, errorcode
 
 from .statements import *
@@ -41,11 +46,15 @@ class DataBase:
 
 
 class Operations:
+    '''
+    Raccoglie tutte le operazioni necessarie per importare i file nel db
+    '''
     def __init__(self, database, downdir):
         self.database = database
         self.downdir = downdir
         self.db_name = self.database.credentials['database']
         self.loaded = self.get_loaded()
+        self.columns = ()
 
     def get_loaded(self):
         '''
@@ -56,8 +65,8 @@ class Operations:
             loaded = tuple(row[0]
                            for row in self.database.execute(GET_LOADED))
 
-        except errors.ProgrammingError as e:
-            if e.errno == errorcode.ER_NO_SUCH_TABLE:
+        except errors.ProgrammingError as err:
+            if err.errno == errorcode.ER_NO_SUCH_TABLE:
                 self.database.execute(CREATE_LOADED)
 
                 logging.info('CREATE : "loaded"')
@@ -96,7 +105,7 @@ class Operations:
 
             return select
 
-        with open(filepath) as file:
+        with open(filepath, encoding="utf-8") as file:
             yield from (json.loads(row, object_hook=fix) for row in file)
 
     @staticmethod
@@ -117,8 +126,8 @@ class Operations:
         try:
             self.database.execute(stmts[table])
 
-        except errors.DatabaseError as e:
-            if e.errno == errorcode.ER_TABLE_EXISTS_ERROR:
+        except errors.DatabaseError as err:
+            if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
                 self.columns = self.get_columns(table)
 
         else:
@@ -133,7 +142,7 @@ class Operations:
                 pk_stmt = ADD_ID.format(table, table)
                 self.database.execute(pk_stmt)
 
-            logging.info(f'CREATE : "{table}" created')
+            logging.info('CREATE : "%s" created', table)
 
     def format_insert(self, table_name):
         '''
@@ -172,7 +181,7 @@ class Operations:
         last_ins, = self.database.execute(LAST_LOAD).fetchone()
         last_ins = last_ins or datetime(1990, 1, 1)
 
-        logging.info(f'INSERT : "sintesi"')
+        logging.info('INSERT : "sintesi"')
 
         insert_sintesi = INSERT_SINTESI.format(columns)
         params = (last_ins, last_ins, last_ins, RGX_DENOMINAZIONE)
@@ -180,7 +189,7 @@ class Operations:
         rows = self.database.execute_many(
             insert_sintesi, [params]).rowcount
 
-        logging.info(f'INSERT : {rows} rows into sintesi')
+        logging.info('INSERT : %s rows into sintesi', rows)
 
         return rows
 
@@ -192,7 +201,7 @@ class Operations:
 
         if os.stat(file_path).st_size > 0:
             logging.info(
-                f'INSERT : "{file_name}" into "{tab_name}"')
+                'INSERT : "%s" into "%s"', file_name, tab_name)
 
             nrows = self.insert(
                 file_path, tab_name, BATCH_SIZE)
@@ -201,6 +210,6 @@ class Operations:
                 INSERT_LOADED, ((tab_name, file_name),))
 
         else:
-            logging.warning(f'INSERT : {file_path} is empty')
+            logging.warning('INSERT : %s is empty', file_path)
 
         return nrows

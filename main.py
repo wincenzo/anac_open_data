@@ -9,16 +9,20 @@ from pprint import pprint
 
 from ckanapi import RemoteCKAN
 
-import ANAC.load as load
-import ANAC.statements as stmts
+from ANAC import load
+from ANAC import statements as stmts
 
 
 cnx = load.DataBase(**stmts.DB_CREDENTIALS)
+
 ops = load.Operations(
     database=cnx, downdir=stmts.DEFAULT_DOWNLOAD_PATH)
 
 
 def index(packs):
+    '''
+    Create un indice dei packages in base al nome della tabella
+    '''
     idx = defaultdict(list)
     for pack in sorted(packs, key=len):
         for tab in sorted(stmts.TABLES, reverse=True, key=len):
@@ -107,8 +111,8 @@ if __name__ == '__main__':
                     tot_rows = 0
                     for pack in pckgs_idx[table]:
                         pack_path = os.path.join(
-                            stmts.DEFAULT_DOWNLOAD_PATH, table, pack)  
-                        
+                            stmts.DEFAULT_DOWNLOAD_PATH, table, pack)
+
                         results = api.action.package_show(id=pack)
 
                         for file in results['resources']:
@@ -125,7 +129,7 @@ if __name__ == '__main__':
 
                                     if not os.path.isfile(file_path):
                                         logging.info(
-                                            f'DOWNLOAD : "{file_path}"')
+                                            'DOWNLOAD : "%s"', file_path)
 
                                         with urlopen(url) as resp:
                                             zfile = BytesIO(resp.read())
@@ -133,7 +137,7 @@ if __name__ == '__main__':
                                                 zfile.extractall(pack_path)
                                     else:
                                         logging.warning(
-                                            f'"{file_path}" already donwloaded')
+                                            '"%s" already donwloaded', file_path)
 
                                     ops.load(table, file_name, file_path)
 
@@ -141,25 +145,25 @@ if __name__ == '__main__':
                                         try:
                                             os.remove(file_path)
                                             logging.info(
-                                                f'"{file_path}" deleted')
+                                                '"%s" deleted', file_path)
 
                                         except FileNotFoundError:
                                             ...
 
                                 else:
                                     logging.warning(
-                                        f'"{file_path}" already loaded')
+                                        '"%s" already loaded', file_path)
 
                     if tot_rows:
                         logging.info(
-                            f'INSERT : {tot_rows} row inserted into "{table}"')
+                            'INSERT : %s row inserted into "%s"', tot_rows, table)
 
         def user_tables(ops, tables=args.tables):
             '''
             Aggiunge le tabelle "cpv" e "province" non disponibili sul 
             portale ANAC
             '''
-            tabs = (('cpv', 'cpv_tree.json'), 
+            tabs = (('cpv', 'cpv_tree.json'),
                     ('province', 'province.json'))
 
             for tab, path in tabs:
@@ -174,11 +178,11 @@ if __name__ == '__main__':
 
                     else:
                         logging.warning(
-                            f'"{path}" already loaded')
+                            '"%s" already loaded', path)
 
                     if tot_rows:
                         logging.info(
-                            f'INSERT : {tot_rows} row inserted into "{tab}"')
+                            'INSERT : %s row inserted into "%s"', tot_rows, tab)
 
         down_n_load(ops)
 
@@ -225,5 +229,5 @@ if __name__ == '__main__':
 
             return missing
 
-        missing = check_columns(ops)
-        pprint(missing)
+        diff = check_columns(ops)
+        pprint(diff)
