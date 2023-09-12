@@ -1,3 +1,7 @@
+'''
+Gestisce il download e l'inserimento nel db dei file prelevati dal portale ANAC
+'''
+
 import argparse
 from collections import defaultdict
 from urllib.request import urlopen

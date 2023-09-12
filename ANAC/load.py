@@ -17,6 +17,9 @@ from .statements import *
 
 
 class DataBase:
+    '''
+    Esegue la connessione ad db ed esegue le query. 
+    '''
     def __init__(self, host, database, user, password):
         self.credentials = {'host': host,
                             'database': database,
