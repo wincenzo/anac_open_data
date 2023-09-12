@@ -13,8 +13,8 @@ from pprint import pprint
 
 from ckanapi import RemoteCKAN
 
-from ANAC import load
-from ANAC import statements as stmts
+from anac import load
+from anac import statements as stmts
 
 
 cnx = load.DataBase(**stmts.DB_CREDENTIALS)
@@ -216,9 +216,9 @@ if __name__ == '__main__':
             for dir in os.scandir(ops.downdir):
                 sub = next(os.scandir(dir))
                 # for sub in os.scandir(dir):
-                for f in os.scandir(sub):
-                    if os.stat(f).st_size > 0:
-                        row = next(ops.reader(f.path, refcols=None))
+                for file in os.scandir(sub):
+                    if os.stat(file).st_size > 0:
+                        row = next(ops.reader(file.path, refcols=None))
                         row = sorted(row, key=len)
 
                         db_cols = list(ops.get_columns(dir.name))

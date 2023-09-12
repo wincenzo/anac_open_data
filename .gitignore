@@ -1,9 +1,9 @@
 *
 
-!ANAC/*
-!ANAC/__init__.py
-!ANAC/load.py
-!ANAC/statements.py
+!anac/
+!anac/__init__.py
+!anac/load.py
+!anac/statements.py
 
 !main.py
 !requirements.txt
@@ -13,4 +13,5 @@
 
 !/cpv_tree.json
 !/province.json
+
 
