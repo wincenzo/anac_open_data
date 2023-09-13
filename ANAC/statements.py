@@ -1,9 +1,8 @@
 __all__ = [
-    'BATCH_SIZE', 'GET_TABLE_COLUMNS', 'INSERT_TABLES', 
+    'BATCH_SIZE', 'GET_TABLE_COLUMNS', 'INSERT_TABLES',
     'HASH_KEY', 'ADD_ID', 'INSERT_SINTESI', 'INSERT_LOADED', 
-    'GET_LOADED', 'RGX_DENOMINAZIONE', 'CREATE_LOADED',
-    'LAST_LOAD'
-]
+    'GET_LOADED', 'RGX_DENOMINAZIONE', 'LAST_LOAD', 'CREATE_LOADED',
+    ]
 
 
 ###########################  CONSTANTS ##################################
@@ -11,10 +10,10 @@ __all__ = [
 
 URL_ANAC = 'https://dati.anticorruzione.it/opendata/'
 
-DB_CREDENTIALS = dict(host='xxx.xxx.xxx.xxx',
-                      database='xxx',
-                      user='xxx',
-                      password='xxx')
+DB_CREDENTIALS = {'host':'193.204.187.101',
+                  'database':'siap_test',
+                  'user':'siap_user',
+                  'password':'U@&GZ8UJMz'}
 
 DEFAULT_DOWNLOAD_PATH = 'anac_json/'
 
@@ -49,7 +48,8 @@ GET_ALL_COLUMNS = '''
 
 INSERT_TABLES = 'INSERT IGNORE INTO {} ({}) VALUES({})'
 
-HASH_KEY = 'ALTER TABLE {} ADD COLUMN {}_hash BINARY(20) AS (UNHEX(SHA(CONCAT_WS(";",{})))) STORED INVISIBLE UNIQUE'
+HASH_KEY = '''ALTER TABLE {} ADD COLUMN {}_hash BINARY(20) AS
+(UNHEX(SHA(CONCAT_WS(";",{})))) STORED INVISIBLE UNIQUE'''
 
 ADD_ID = 'ALTER TABLE {} ADD COLUMN {}_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY'
 
@@ -592,7 +592,34 @@ CREATE_SINTESI = {
 LAST_LOAD = 'SELECT MAX(data_inserimento) AS last_ins FROM sintesi'
 
 INSERT_SINTESI = '''
-    INSERT IGNORE INTO sintesi ({})
+    INSERT IGNORE INTO sintesi (codice_fiscale,
+        denominazione,
+        ruolo,
+        tipo_soggetto,
+        importo_aggiudicazione,
+        importo_lotto,
+        data_aggiudicazione_definitiva,
+        criterio_aggiudicazione,
+        massimo_ribasso,
+        minimo_ribasso,
+        numero_offerte_ammesse,
+        numero_offerte_escluse,
+        num_imprese_offerenti,
+        cig,
+        cod_cpv,
+        descrizione_cpv,
+        oggetto_lotto,
+        oggetto_gara,
+        tipo_scelta_contraente,
+        oggetto_principale_contratto,
+        modalita_realizzazione,
+        regione,
+        provincia,
+        stazione_appaltante,
+        cf_stazione_appaltante,
+        provincia_codice,
+        numero_gara,
+        flag_subappalto)
     WITH 
         ag AS (
             SELECT 

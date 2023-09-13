@@ -1,8 +1,3 @@
-''' Operations Module
-
-Questo modulo raccoglie tutte le funzioni necessarie a connettersi
-al database, creare la tabelle ed inserire i dati estratti dai dile
-'''
 
 from itertools import islice
 from datetime import datetime
@@ -17,9 +12,6 @@ from .statements import *
 
 
 class DataBase:
-    '''
-    Esegue la connessione ad db ed esegue le query. 
-    '''
     def __init__(self, host, database, user, password):
         self.credentials = {'host': host,
                             'database': database,
@@ -49,15 +41,19 @@ class DataBase:
 
 
 class Operations:
-    '''
-    Raccoglie tutte le operazioni necessarie per importare i file nel db
-    '''
     def __init__(self, database, downdir):
         self.database = database
         self.downdir = downdir
         self.db_name = self.database.credentials['database']
         self.loaded = self.get_loaded()
-        self.columns = ()
+
+    @property
+    def columns(self):
+        return self._columns
+    
+    @columns.setter
+    def columns(self, value):
+        self._columns = value
 
     def get_loaded(self):
         '''
@@ -78,7 +74,7 @@ class Operations:
 
     def get_columns(self, table):
         '''
-        Ritorna le tabelle contenute in una tabella
+        Ritorna le tabelle contenute in una tabella.
         '''
         return tuple(row[0] for row in self.database.execute(
             GET_TABLE_COLUMNS, (table,)))
@@ -98,7 +94,7 @@ class Operations:
             for k in sorted(row, key=len):
                 _k = k.replace('-', '_')
                 if refcols:
-                    for col in sorted(refcols, reverse=True, key=len):
+                    for col in sorted(refcols, key=len, reverse=True):
                         if (_k.lower().startswith(col.lower())
                                 and col not in select):
                             select[col] = row[k] or None
@@ -108,14 +104,14 @@ class Operations:
 
             return select
 
-        with open(filepath, encoding="utf-8") as file:
+        with open(filepath, encoding='utf8') as file:
             yield from (json.loads(row, object_hook=fix) for row in file)
 
     @staticmethod
     def batched_rows(reader, batch_size):
         '''
-        Il generatore crea pacchetti di linee da inserire nel db usando 
-        il metodo executemany() previsto dal connettore mysql
+        Il generatore crea pacchetti di righe da inserire nel db usando 
+        il metodo executemany() previsto dal connettore MySQL.
         '''
         while (batch := tuple(islice(reader, batch_size))):
             yield batch
@@ -131,10 +127,10 @@ class Operations:
 
         except errors.DatabaseError as err:
             if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
-                self.columns = self.get_columns(table)
+                self._columns = self.get_columns(table)
 
         else:
-            self.columns = self.get_columns(table)
+            self._columns = self.get_columns(table)
 
             if hash:
                 columns = ','.join(self.columns)
@@ -149,10 +145,10 @@ class Operations:
 
     def format_insert(self, table_name):
         '''
-        Nel caso il file non sia vuoto (sono presenti file vuoti), formatta 
-        dinamicamente l'insert statement per ogni tabella.
+        Formatta dinamicamente l'insert statement per ogni tabella.
         '''
         columns = ','.join(self.columns)
+
         values = [f'%({c})s' for c in self.columns]
         values = ','.join(values)
 
@@ -179,18 +175,14 @@ class Operations:
         Inserisce i dati nella tabella "sintesi" verificando che non siano già 
         stati inseriti in precedenza confrontando la data di inserimento.
         '''
-        columns = ','.join(self.columns)
+        last, = self.database.execute(LAST_LOAD).fetchone()
+        last = last or datetime(1990, 1, 1)
 
-        last_ins, = self.database.execute(LAST_LOAD).fetchone()
-        last_ins = last_ins or datetime(1990, 1, 1)
+        logging.info('INSERT : "sintesi" ...')
 
-        logging.info('INSERT : "sintesi"')
-
-        insert_sintesi = INSERT_SINTESI.format(columns)
-        params = (last_ins, last_ins, last_ins, RGX_DENOMINAZIONE)
-
+        params = (last, last, last, RGX_DENOMINAZIONE)
         rows = self.database.execute_many(
-            insert_sintesi, [params]).rowcount
+            INSERT_SINTESI, (params,)).rowcount
 
         logging.info('INSERT : %s rows into sintesi', rows)
 
@@ -204,7 +196,7 @@ class Operations:
 
         if os.stat(file_path).st_size > 0:
             logging.info(
-                'INSERT : "%s" into "%s"', file_name, tab_name)
+                'INSERT : "%s" into "%s" ...', file_name, tab_name)
 
             nrows = self.insert(
                 file_path, tab_name, BATCH_SIZE)
@@ -213,6 +205,6 @@ class Operations:
                 INSERT_LOADED, ((tab_name, file_name),))
 
         else:
-            logging.warning('INSERT : %s is empty', file_path)
+            logging.warning('INSERT : "%s" is empty', file_path)
 
         return nrows

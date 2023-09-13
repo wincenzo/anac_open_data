@@ -1,7 +1,3 @@
-'''
-Gestisce il download e l'inserimento nel db dei file prelevati dal portale ANAC
-'''
-
 import argparse
 from collections import defaultdict
 from urllib.request import urlopen
@@ -18,20 +14,18 @@ from anac import statements as stmts
 
 
 cnx = load.DataBase(**stmts.DB_CREDENTIALS)
-
-ops = load.Operations(
+anac_ops = load.Operations(
     database=cnx, downdir=stmts.DEFAULT_DOWNLOAD_PATH)
 
 
 def index(packs):
     '''
-    Create un indice dei packages in base al nome della tabella
+    Crea un indice dei packages in base al nome della tabella
     '''
     idx = defaultdict(list)
     for pack in sorted(packs, key=len):
         for tab in sorted(stmts.TABLES, reverse=True, key=len):
-            if pack.startswith((tab, tab.replace('_', '-'))):
-                tab = tab.replace('-', '_')
+            if pack.startswith((tab.replace('_', '-'), tab)):
                 idx[tab].append(pack)
                 idx[tab].sort()
                 break
@@ -48,16 +42,16 @@ if __name__ == '__main__':
 
     dw_ld = subparsers.add_parser('load',
                                   prog='make_database',
-                                  help='''executes all steps for db creation: 
-                                 download files-create tables-insert data''')
+                                  help='''executes all steps for db creation:
+                                  download files-create tables-insert data''')
 
     dw_ld.add_argument('-t', '--tables',
                        nargs='*',
                        default=[],
                        type=str,
                        metavar='NAME',
-                       help='''provide tables name to insert into db; 
-                      if missing insert all tables''')
+                       help='''provide tables name to insert into db;
+                       if missing insert all tables''')
 
     dw_ld.add_argument('-c', '--clean',
                        action='store_true',
@@ -65,10 +59,11 @@ if __name__ == '__main__':
 
     dw_ld.add_argument('-k', '--keep',
                        nargs='*',
+                       default=[],
                        type=str,
                        metavar='NAME',
-                       help='''provide tables name to keep when 
-                      "clean" option is called''')
+                       help='''provide tables name to keep when
+                       "clean" option is called''')
 
     dw_ld.add_argument('-s', '--skip',
                        nargs='*',
@@ -79,7 +74,7 @@ if __name__ == '__main__':
 
     sintesi = subparsers.add_parser('sintesi',
                                     prog='make_sintesi',
-                                    help='''executes all steps to make the table 
+                                    help='''executes all steps to make the table
                                     "sintesi" and create the view "sintesi_cpv"''')
 
     check = subparsers.add_parser('check',
@@ -108,10 +103,10 @@ if __name__ == '__main__':
                 packages = api.action.package_list()
                 pckgs_idx = index(packages)
 
-                tables = tables or packages
+                tables = tables or pckgs_idx
                 tables = set(tables) - set(skip)
 
-                for table in sorted(tables):
+                for table in tables:
                     tot_rows = 0
                     for pack in pckgs_idx[table]:
                         pack_path = os.path.join(
@@ -188,9 +183,9 @@ if __name__ == '__main__':
                         logging.info(
                             'INSERT : %s row inserted into "%s"', tot_rows, tab)
 
-        down_n_load(ops)
+        down_n_load(anac_ops)
 
-        user_tables(ops)
+        user_tables(anac_ops)
 
     elif args.command == 'sintesi':
         def make_sintesi(ops):
@@ -204,7 +199,7 @@ if __name__ == '__main__':
             ops.create(stmts.CREATEVIEW_SINTESI_CPV,
                        'sintesi_cpv', key=False, hash=False)
 
-        make_sintesi(ops)
+        make_sintesi(anac_ops)
 
     elif args.command == 'check':
         def check_columns(ops):
@@ -213,12 +208,11 @@ if __name__ == '__main__':
             ma assenti nelle tabelle del db
             '''
             missing = defaultdict(list)
-            for dir in os.scandir(ops.downdir):
-                sub = next(os.scandir(dir))
-                # for sub in os.scandir(dir):
-                for file in os.scandir(sub):
-                    if os.stat(file).st_size > 0:
-                        row = next(ops.reader(file.path, refcols=None))
+            for d in os.scandir(ops.downdir):
+                sub = next(os.scandir(d))
+                for f in os.scandir(sub):
+                    if os.stat(f).st_size > 0:
+                        row = next(ops.reader(f.path, refcols=None))
                         row = sorted(row, key=len)
 
                         db_cols = list(ops.get_columns(dir.name))
@@ -230,8 +224,7 @@ if __name__ == '__main__':
                             else:
                                 missing[dir.name].append(col)
                         break
-
             return missing
 
-        diff = check_columns(ops)
+        diff = check_columns(anac_ops)
         pprint(diff)
