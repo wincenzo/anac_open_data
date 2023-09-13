@@ -51,8 +51,8 @@ class Operations:
         return self._columns
 
     @columns.setter
-    def columns(self, value):
-        self._columns = value
+    def columns(self, result):
+        self._columns = result
 
     def get_loaded(self):
         '''
@@ -126,10 +126,10 @@ class Operations:
 
         except errors.DatabaseError as err:
             if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
-                self._columns = self.get_columns(table)
+                self.columns = self.get_columns(table)
 
         else:
-            self._columns = self.get_columns(table)
+            self.columns = self.get_columns(table)
 
             if hash:
                 columns = ','.join(self.columns)
