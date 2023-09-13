@@ -25,7 +25,7 @@ ops = load.Operations(
 
 def index(packs):
     '''
-    Create un indice dei packages in base al nome della tabella
+    Crea un indice dei packages in base al nome della tabella
     '''
     idx = defaultdict(list)
     for pack in sorted(packs, key=len):
