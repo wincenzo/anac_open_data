@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 from itertools import islice
 
-import statements as stmts
+import anac.statements as stmts
 from mysql import connector
 from mysql.connector import errorcode, errors
 
@@ -94,8 +94,8 @@ class Operations:
                 _k = k.replace('-', '_')
                 if refcols:
                     for col in sorted(refcols, key=len, reverse=True):
-                        if (_k.lower().startswith(col.lower()) and  # noqa: W504
-                                col not in select):
+                        match = _k.lower().startswith(col.lower())
+                        if match and col not in select:
                             select[col] = row[k] or None
                             break
                 else:
@@ -115,14 +115,14 @@ class Operations:
         while (batch := tuple(islice(reader, batch_size))):
             yield batch
 
-    def create(self, stmts, table,
+    def create(self, statements, table,
                hash=False, key=True):
         '''
         Crea le tabelle qualora non siano già presenti nel db. Eventualmente
         aggiunge "id" primary key ed "hash" unique key.
         '''
         try:
-            self.database.execute(stmts[table])
+            self.database.execute(statements[table])
 
         except errors.DatabaseError as err:
             if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:

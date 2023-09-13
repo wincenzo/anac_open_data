@@ -525,8 +525,6 @@ CREATE_TABLES = {
         data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP )) ''',
 }
 
-TABLES = tuple(CREATE_TABLES)
-
 RGX_DENOMINAZIONE = r"\\.|\\?|\\'|\\|&#\\d+;|&\\w+;|^&|^,|,$|^\\.|\\*"
 
 CREATE_SINTESI = {

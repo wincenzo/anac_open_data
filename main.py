@@ -23,7 +23,7 @@ def index(packs):
     '''
     idx = defaultdict(list)
     for pack in sorted(packs, key=len):
-        for tab in sorted(stmts.TABLES, reverse=True, key=len):
+        for tab in sorted(stmts.CREATE_TABLES, reverse=True, key=len):
             if pack.startswith((tab.replace('_', '-'), tab)):
                 idx[tab].append(pack)
                 idx[tab].sort()
@@ -95,7 +95,7 @@ if __name__ == '__main__':
             '''
             if tables:
                 for tab in tables:
-                    assert tab in stmts.TABLES,\
+                    assert tab in stmts.CREATE_TABLES,\
                         f'table "{tab}" not in database schema'
 
             with RemoteCKAN(stmts.URL_ANAC) as api:
