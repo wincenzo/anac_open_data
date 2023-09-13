@@ -1,17 +1,16 @@
 import argparse
-from collections import defaultdict
-from urllib.request import urlopen
-from io import BytesIO
-from zipfile import ZipFile
 import logging
 import os
+from collections import defaultdict
+from io import BytesIO
 from pprint import pprint
+from urllib.request import urlopen
+from zipfile import ZipFile
 
 from ckanapi import RemoteCKAN
 
 from anac import load
 from anac import statements as stmts
-
 
 cnx = load.DataBase(**stmts.DB_CREDENTIALS)
 anac_ops = load.Operations(
