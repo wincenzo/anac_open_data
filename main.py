@@ -90,8 +90,8 @@ if __name__ == '__main__':
                         clean=args.clean,
                         keep=args.keep):
             '''
-            Esegue il download dei files, la creazione delle tabelle e 
-            l'inserimento dei file nelle tabelle controllando che non 
+            Esegue il download dei files, la creazione delle tabelle e
+            l'inserimento dei file nelle tabelle controllando che non
             siano stati inseriti in precedenza
             '''
             if tables:
@@ -115,7 +115,7 @@ if __name__ == '__main__':
                         results = api.action.package_show(id=pack)
 
                         for file in results['resources']:
-                            if (file['format'] == 'JSON' and
+                            if (file['format'] == 'JSON' and  # noqa: W504
                                     file['mimetype'] == 'application/zip'):
                                 url, name = file['url'], file['name']
 
@@ -159,8 +159,7 @@ if __name__ == '__main__':
 
         def user_tables(ops, tables=args.tables):
             '''
-            Aggiunge le tabelle "cpv" e "province" non disponibili sul 
-            portale ANAC
+            Aggiunge le tabelle "cpv" e "province" non disponibili sul portale ANAC
             '''
             tabs = (('cpv', 'cpv_tree.json'),
                     ('province', 'province.json'))

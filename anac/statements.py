@@ -1,48 +1,48 @@
 __all__ = [
     'BATCH_SIZE', 'GET_TABLE_COLUMNS', 'INSERT_TABLES',
-    'HASH_KEY', 'ADD_ID', 'INSERT_SINTESI', 'INSERT_LOADED', 
+    'HASH_KEY', 'ADD_ID', 'INSERT_SINTESI', 'INSERT_LOADED',
     'GET_LOADED', 'RGX_DENOMINAZIONE', 'LAST_LOAD', 'CREATE_LOADED',
-    ]
+]
 
 
-###########################  CONSTANTS ##################################
+# CONSTANTS ################################################################################
 # Set these values to configure
 
 URL_ANAC = 'https://dati.anticorruzione.it/opendata/'
 
-DB_CREDENTIALS = {'host':'193.204.187.101',
-                  'database':'siap_test',
-                  'user':'siap_user',
-                  'password':'U@&GZ8UJMz'}
+DB_CREDENTIALS = {'host': '193.204.187.101',
+                  'database': 'siap_test',
+                  'user': 'siap_user',
+                  'password': 'U@&GZ8UJMz'}
 
 DEFAULT_DOWNLOAD_PATH = 'anac_json/'
 
 BATCH_SIZE = 75_000
 
 
-###########################  SQL STATEMENTS ##############################
+# SQL STATEMENTS ############################################################################
 
-#GET_TABLE_COLUMNS = 'SHOW COLUMNS FROM {} WHERE extra = ""'
+# GET_TABLE_COLUMNS = 'SHOW COLUMNS FROM {} WHERE extra = ""'
 
 GET_TABLE_COLUMNS = '''
-    SELECT 
+    SELECT
         COLUMN_NAME
-    FROM 
+    FROM
         INFORMATION_SCHEMA.COLUMNS
-    WHERE 
-        TABLE_SCHEMA = DATABASE() AND 
-        TABLE_NAME = %s AND 
+    WHERE
+        TABLE_SCHEMA = DATABASE() AND
+        TABLE_NAME = %s AND
         EXTRA = ""
     '''
 
 GET_ALL_COLUMNS = '''
-    SELECT 
+    SELECT
         TABLE_NAME,
         COLUMN_NAME
-    FROM 
+    FROM
         INFORMATION_SCHEMA.COLUMNS
-    WHERE 
-        TABLE_SCHEMA = DATABASE() AND 
+    WHERE
+        TABLE_SCHEMA = DATABASE() AND
         EXTRA = ""
     '''
 
@@ -76,7 +76,7 @@ CREATE_TABLES = {
         denominazione VARCHAR(384) DEFAULT NULL,
         tipo_soggetto VARCHAR(384) DEFAULT NULL,
         id_aggiudicazione BIGINT UNSIGNED DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),        
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_aggiudicatari_id_aggiudicazione (id_aggiudicazione),
         KEY idx_aggiudicatari_cig (cig))''',
 
@@ -100,7 +100,7 @@ CREATE_TABLES = {
         num_imprese_invitate INT DEFAULT NULL,
         massimo_ribasso FLOAT DEFAULT NULL,
         minimo_ribasso FLOAT DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),       
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_aggiudicazioni_id_aggiudicazione (id_aggiudicazione),
         KEY idx_aggiudicazioni_cig (cig))''',
 
@@ -129,7 +129,7 @@ CREATE_TABLES = {
         categoria VARCHAR(64) DEFAULT NULL,
         desc_categoria VARCHAR(384) DEFAULT NULL,
         classifica VARCHAR(64) DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),        
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_attestazioni_soa_cf_impresa (cf_impresa))''',
 
     'avvio_contratto': '''
@@ -144,7 +144,7 @@ CREATE_TABLES = {
         consegna_frazionata TINYINT UNSIGNED DEFAULT NULL,
         consegna_sotto_riserva TINYINT UNSIGNED DEFAULT NULL,
         id_aggiudicazione BIGINT UNSIGNED DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),       
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_avvio_contratto_cig (cig),
         KEY idx_avvio_contratto_id_aggiudicazione (id_aggiudicazione))''',
 
@@ -180,7 +180,7 @@ CREATE_TABLES = {
         cod_cpv VARCHAR(64) DEFAULT NULL,
         descrizione_cpv VARCHAR(384) DEFAULT NULL,
         flag_prevalente TINYINT UNSIGNED DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),       
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_cig_cig (cig),
         KEY idx_cig_cod_cpv (cod_cpv),
         KEY idx_cig_centro_costo (id_centro_costo),
@@ -217,7 +217,7 @@ CREATE_TABLES = {
         denominazione_centro_costo VARCHAR(384) DEFAULT NULL,
         anno_comunicazione SMALLINT DEFAULT NULL,
         mese_comunicazione TINYINT UNSIGNED DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),        
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_smartcig_cig (cig))''',
 
     'categorie_dpcm_aggregazione': '''
@@ -227,7 +227,7 @@ CREATE_TABLES = {
         categoria_merceologica_dpcm_aggregazione VARCHAR(384) DEFAULT NULL,
         cod_deroga_soggetto_aggregatore TINYINT UNSIGNED DEFAULT NULL,
         deroga_dpcm_soggetto_aggregatore VARCHAR(384) DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),       
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_categorie_dpcm_aggregazione_cig (cig))''',
 
     'categorie_opera': '''
@@ -238,7 +238,7 @@ CREATE_TABLES = {
         cod_tipo_categoria VARCHAR(64) DEFAULT NULL,
         descrizione_tipo_categoria VARCHAR(64) DEFAULT NULL,
         classe_importo VARCHAR(64) DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),       
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_categorie_opera_cig (cig))''',
 
     'centri_di_costo': '''
@@ -258,7 +258,7 @@ CREATE_TABLES = {
         flag_soggetto_aggregatore TINYINT UNSIGNED DEFAULT NULL,
         stazione_appaltante_codice_fiscale VARCHAR(64) DEFAULT NULL,
         stazione_appaltante_denominazione VARCHAR(384) DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),        
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_centri_di_costo_id_centro_di_costo (id_centro_di_costo))''',
 
     'collaudo': '''
@@ -272,7 +272,7 @@ CREATE_TABLES = {
         data_nomina_coll DATETIME DEFAULT NULL,
         data_collaudo_stat DATETIME DEFAULT NULL,
         id_aggiudicazione BIGINT UNSIGNED DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),       
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_collaudo_cig (cig),
         KEY idx_collaudo_id_aggiudicazione (id_aggiudicazione))''',
 
@@ -294,7 +294,7 @@ CREATE_TABLES = {
         IT_descrizione_sub_categorie VARCHAR(384) DEFAULT NULL,
         IT_descrizione_sub_sub_categorie VARCHAR(384) DEFAULT NULL,
         IT_descrizione_sub_sub_sub_categorie VARCHAR(384) DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),       
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_cpv_cod_cpv_ (cod_cpv_),
         KEY idx_cpv_IT_descrizione_divisione (IT_descrizione_divisione),
         KEY idx_cpv_IT_descrizione_gruppo (IT_descrizione_gruppo),
@@ -308,7 +308,7 @@ CREATE_TABLES = {
     CREATE TABLE IF NOT EXISTS cup (
         cig VARCHAR(64) DEFAULT NULL,
         cup VARCHAR(64) DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),       
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_cup_cig (cig))''',
 
     'empulia': '''
@@ -327,7 +327,7 @@ CREATE_TABLES = {
         note TEXT,
         list_of_file json DEFAULT NULL,
         expired TINYINT UNSIGNED DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),       
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_empulia_cig (cig))''',
 
     'fine_contratto': '''
@@ -341,7 +341,7 @@ CREATE_TABLES = {
         data_effettiva_ultimazione DATETIME DEFAULT NULL,
         id_aggiudicazione BIGINT UNSIGNED DEFAULT NULL,
         giorni_proroga SMALLINT DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),        
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_fine_contratto_cig (cig),
         KEY idx_fine_contratto_id_aggiudicazione (id_aggiudicazione))''',
 
@@ -363,7 +363,7 @@ CREATE_TABLES = {
         entrate_con_dest_vincolata_privati DOUBLE DEFAULT NULL,
         trasferimento_di_immobili_ex_art53_c6_dlgs_n163_06 DOUBLE DEFAULT NULL,
         #trasferimento_di_immobili_ex_art53_c6_dlgs_n163_06_economia_su_stanziamenti_non_vincolati DOUBLE DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),       
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_fonti_finanziamento_cig (cig),
         KEY idx_fonti_finanziamento_id_aggiudicazione (id_aggiudicazione))''',
 
@@ -372,7 +372,7 @@ CREATE_TABLES = {
         cig VARCHAR(64) DEFAULT NULL,
         cod_tipo_lavorazione TINYINT UNSIGNED DEFAULT NULL,
         tipo_lavorazione VARCHAR(64) DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),       
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_lavorazioni_cig (cig))''',
 
     'bandi_cig_modalita_realizzazione':
@@ -397,7 +397,7 @@ CREATE_TABLES = {
         data_guri DATETIME DEFAULT NULL,
         data_guce DATETIME DEFAULT NULL,
         data_bore DATETIME DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),       
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_pubblicazioni_cig (cig))''',
 
     'quadro_economico': '''
@@ -414,7 +414,7 @@ CREATE_TABLES = {
         somme_a_disposizione DOUBLE DEFAULT NULL,
         importo_servizi DOUBLE DEFAULT NULL,
         ulteriori_oneri_non_soggetti_ribasso DOUBLE DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),       
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_quadro_economico_cig (cig),
         KEY idx_quadro_economico_id_aggiudicazione (id_aggiudicazione))''',
 
@@ -425,7 +425,7 @@ CREATE_TABLES = {
         data_ripresa DATETIME DEFAULT NULL,
         descrizione_motivo VARCHAR(384) DEFAULT NULL,
         id_aggiudicazione BIGINT UNSIGNED DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),        
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_sospensioni_cig (cig),
         KEY idx_sospensioni_id_aggiudicazione (id_aggiudicazione))''',
 
@@ -439,7 +439,7 @@ CREATE_TABLES = {
         n_giorni_scostamento INT DEFAULT NULL,
         progressivo_sal INT DEFAULT NULL,
         id_aggiudicazione BIGINT UNSIGNED DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),        
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_stati_di_avanzamento_cig (cig),
         KEY idx_stati_di_avanzamento_id_aggiudicazione (id_aggiudicazione))''',
 
@@ -463,7 +463,7 @@ CREATE_TABLES = {
         stato VARCHAR(64) DEFAULT NULL,
         data_inizio DATETIME DEFAULT NULL,
         data_fine DATETIME DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),        
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_stazione_appaltante_codice_fiscale (codice_fiscale),
         KEY idx_stazione_appaltante_codice_ausa (codice_ausa),
         KEY idx_stazione_appaltante_provincia_nome (provincia_nome))''',
@@ -485,7 +485,7 @@ CREATE_TABLES = {
         descrizione_tipo_categoria VARCHAR(384) DEFAULT NULL,
         cod_cpv VARCHAR(64) DEFAULT NULL,
         descrizione_cpv VARCHAR(384) DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),        
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_subappalti_cig (cig),
         KEY idx_subappalti_cf_subappaltante (cf_subappaltante),
         KEY idx_subappalti_codice_fiscale (codice_fiscale))''',
@@ -510,18 +510,18 @@ CREATE_TABLES = {
         data_approvazione_variante DATETIME DEFAULT NULL,
         cig VARCHAR(64) DEFAULT NULL,
         id_aggiudicazione BIGINT UNSIGNED DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),        
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_varianti_cig (cig),
         KEY idx_varianti_id_aggiudicazione (id_aggiudicazione))''',
 
     'partecipanti': '''
     CREATE TABLE IF NOT EXISTS partecipanti (
-        cig VARCHAR(64) DEFAULT NULL, 
-        ruolo VARCHAR(64) DEFAULT NULL, 
-        codice_fiscale VARCHAR(64) DEFAULT NULL, 
-        denominazione VARCHAR(384) DEFAULT NULL, 
+        cig VARCHAR(64) DEFAULT NULL,
+        ruolo VARCHAR(64) DEFAULT NULL,
+        codice_fiscale VARCHAR(64) DEFAULT NULL,
+        denominazione VARCHAR(384) DEFAULT NULL,
         tipo_soggetto VARCHAR(384) DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),       
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_partecipanti (cig))''',
 
     'smartcig_tipo_fattispecie_contrattuale': '''
@@ -567,10 +567,10 @@ CREATE_SINTESI = {
         numero_gara BIGINT UNSIGNED DEFAULT NULL,
         anno INT UNSIGNED AS (YEAR(data_aggiudicazione_definitiva)) STORED,
         flag_subappalto TINYINT UNSIGNED DEFAULT NULL,
-        flag_cons TINYINT UNSIGNED AS (CASE 
+        flag_cons TINYINT UNSIGNED AS (CASE
             WHEN tipo_soggetto LIKE 'consorzio%' THEN 1
             WHEN tipo_soggetto LIKE 'ati%'THEN 1
-            ELSE 0 
+            ELSE 0
             END) STORED,
         data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_sintesi_data_inserimento (data_inserimento),
@@ -620,19 +620,19 @@ INSERT_SINTESI = '''
         provincia_codice,
         numero_gara,
         flag_subappalto)
-    WITH 
+    WITH
         ag AS (
-            SELECT 
+            SELECT
                 codice_fiscale,
                 denominazione,
                 ruolo,
                 tipo_soggetto,
                 id_aggiudicazione
-            FROM aggiudicatari 
+            FROM aggiudicatari
             WHERE data_inserimento > %s),
         a AS (
             SELECT
-                cig, 
+                cig,
                 importo_aggiudicazione,
                 data_aggiudicazione_definitiva,
                 criterio_aggiudicazione,
@@ -649,21 +649,21 @@ INSERT_SINTESI = '''
             SELECT
                 importo_lotto,
                 cig,
-	            cod_cpv,
+                cod_cpv,
                 descrizione_cpv,
                 oggetto_lotto,
-	            oggetto_gara,
+                oggetto_gara,
                 tipo_scelta_contraente,
-	            oggetto_principale_contratto,
+                oggetto_principale_contratto,
                 modalita_realizzazione,
                 numero_gara,
                 cf_amministrazione_appaltante
-            FROM cig 
+            FROM cig
             WHERE data_inserimento > %s)
-    SELECT 
-	    ag.codice_fiscale,
+    SELECT
+        ag.codice_fiscale,
         TRIM(regexp_replace(ag.denominazione, %s, "")) AS denominazione,
-	    ag.ruolo,
+        ag.ruolo,
         ag.tipo_soggetto,
         a.importo_aggiudicazione,
         c.importo_lotto,
@@ -675,37 +675,36 @@ INSERT_SINTESI = '''
         a.numero_offerte_escluse,
         a.num_imprese_offerenti,
         c.cig,
-	    c.cod_cpv,
+        c.cod_cpv,
         TRIM(TRAILING '.' FROM c.descrizione_cpv) AS descrizione_cpv,
-	    c.oggetto_lotto,
-	    c.oggetto_gara,
+        c.oggetto_lotto,
+        c.oggetto_gara,
         c.tipo_scelta_contraente,
-	    c.oggetto_principale_contratto,
+        c.oggetto_principale_contratto,
         c.modalita_realizzazione,
-	    pr.regione,
-	    pr.provincia,
+        pr.regione,
+        pr.provincia,
         sa.denominazione AS stazione_appaltante,
         sa.codice_fiscale AS cf_stazione_appaltante,
-	    sa.provincia_codice,
+        sa.provincia_codice,
         c.numero_gara,
-        a.flag_subappalto 
-    FROM 
-	    ag
-    JOIN 
-	    a ON a.id_aggiudicazione = ag.id_aggiudicazione
+        a.flag_subappalto
+    FROM
+        ag
     JOIN
-	    c ON c.cig = a.cig
+        a ON a.id_aggiudicazione = ag.id_aggiudicazione
     JOIN
-	    stazioni_appaltanti sa ON sa.codice_fiscale = c.cf_amministrazione_appaltante
+        c ON c.cig = a.cig
     JOIN
-	    province pr ON sa.provincia_codice = pr.provincia_codice
+        stazioni_appaltanti sa ON sa.codice_fiscale = c.cf_amministrazione_appaltante
+    JOIN
+    province pr ON sa.provincia_codice = pr.provincia_codice
     '''
 
 CREATEVIEW_SINTESI_CPV = {
     'sintesi_cpv': '''
-    CREATE OR REPLACE VIEW 
-        siap_test.sintesi_cpv AS 
-        SELECT 
+    CREATE OR REPLACE VIEW siap_test.sintesi_cpv AS
+        SELECT
             s.codice_fiscale,
             s.denominazione,
             s.ruolo,
@@ -750,9 +749,9 @@ CREATEVIEW_SINTESI_CPV = {
             c.IT_descrizione_sub_categorie,
             c.IT_descrizione_sub_sub_categorie,
             c.IT_descrizione_sub_sub_sub_categorie
-        FROM 
+        FROM
             sintesi s
-        JOIN cpv c 
-            ON s.cod_cpv = c.cod_cpv_ 
-    WITH CHECK OPTION'''
+        JOIN cpv c
+            ON s.cod_cpv = c.cod_cpv_
+        WITH CHECK OPTION'''
 }

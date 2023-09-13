@@ -1,14 +1,13 @@
 
-from itertools import islice
-from datetime import datetime
 import json
 import logging
 import os
+from datetime import datetime
+from itertools import islice
 
+import statements as stmts
 from mysql import connector
-from mysql.connector import errors, errorcode
-
-from .statements import *
+from mysql.connector import errorcode, errors
 
 
 class DataBase:
@@ -50,7 +49,7 @@ class Operations:
     @property
     def columns(self):
         return self._columns
-    
+
     @columns.setter
     def columns(self, value):
         self._columns = value
@@ -62,11 +61,11 @@ class Operations:
         loaded = ()
         try:
             loaded = tuple(row[0]
-                           for row in self.database.execute(GET_LOADED))
+                           for row in self.database.execute(stmts.GET_LOADED))
 
         except errors.ProgrammingError as err:
             if err.errno == errorcode.ER_NO_SUCH_TABLE:
-                self.database.execute(CREATE_LOADED)
+                self.database.execute(stmts.CREATE_LOADED)
 
                 logging.info('CREATE : "loaded"')
 
@@ -77,16 +76,16 @@ class Operations:
         Ritorna le tabelle contenute in una tabella.
         '''
         return tuple(row[0] for row in self.database.execute(
-            GET_TABLE_COLUMNS, (table,)))
+            stmts.GET_TABLE_COLUMNS, (table,)))
 
     @staticmethod
     def reader(filepath, refcols):
         '''
-        Generatore che ritorna una riga dai file json e selezionando solo 
-        le colonne presenti anche nel database (a volte nei files vengono 
-        aggiunte delle nuove colonne non presenti nel db o con nomi differenti). 
-        Inoltre assicura che i campi vuoti siano avvalorati correttamente e 
-        che i valori nulli siano istanziati come "None" in modo che il 
+        Generatore che ritorna una riga dai file json e selezionando solo
+        le colonne presenti anche nel database (a volte nei files vengono
+        aggiunte delle nuove colonne non presenti nel db o con nomi differenti).
+        Inoltre assicura che i campi vuoti siano avvalorati correttamente e
+        che i valori nulli siano istanziati come "None" in modo che il
         connettore li traduca in NULL durante l'inserimento.
         '''
         def fix(row):
@@ -95,8 +94,8 @@ class Operations:
                 _k = k.replace('-', '_')
                 if refcols:
                     for col in sorted(refcols, key=len, reverse=True):
-                        if (_k.lower().startswith(col.lower())
-                                and col not in select):
+                        if (_k.lower().startswith(col.lower()) and  # noqa: W504
+                                col not in select):
                             select[col] = row[k] or None
                             break
                 else:
@@ -110,7 +109,7 @@ class Operations:
     @staticmethod
     def batched_rows(reader, batch_size):
         '''
-        Il generatore crea pacchetti di righe da inserire nel db usando 
+        Il generatore crea pacchetti di righe da inserire nel db usando
         il metodo executemany() previsto dal connettore MySQL.
         '''
         while (batch := tuple(islice(reader, batch_size))):
@@ -119,7 +118,7 @@ class Operations:
     def create(self, stmts, table,
                hash=False, key=True):
         '''
-        Crea le tabelle qualora non siano già presenti nel db. Eventualmente 
+        Crea le tabelle qualora non siano già presenti nel db. Eventualmente
         aggiunge "id" primary key ed "hash" unique key.
         '''
         try:
@@ -134,11 +133,11 @@ class Operations:
 
             if hash:
                 columns = ','.join(self.columns)
-                hash_stmt = HASH_KEY.format(table, table, columns)
+                hash_stmt = stmts.HASH_KEY.format(table, table, columns)
                 self.database.execute(hash_stmt)
 
             if key:
-                pk_stmt = ADD_ID.format(table, table)
+                pk_stmt = stmts.ADD_ID.format(table, table)
                 self.database.execute(pk_stmt)
 
             logging.info('CREATE : "%s" created', table)
@@ -152,13 +151,13 @@ class Operations:
         values = [f'%({c})s' for c in self.columns]
         values = ','.join(values)
 
-        insert_stmt = INSERT_TABLES.format(table_name, columns, values)
+        insert_stmt = stmts.INSERT_TABLES.format(table_name, columns, values)
 
         return insert_stmt
 
     def insert(self, file_path, table_name, batch_size):
         '''
-        Esegue l'insert nel db. 
+        Esegue l'insert nel db.
         '''
         insert_stmt = self.format_insert(table_name)
 
@@ -172,17 +171,17 @@ class Operations:
 
     def insert_sintesi(self):
         '''
-        Inserisce i dati nella tabella "sintesi" verificando che non siano già 
+        Inserisce i dati nella tabella "sintesi" verificando che non siano già
         stati inseriti in precedenza confrontando la data di inserimento.
         '''
-        last, = self.database.execute(LAST_LOAD).fetchone()
+        last, = self.database.execute(stmts.LAST_LOAD).fetchone()
         last = last or datetime(1990, 1, 1)
 
         logging.info('INSERT : "sintesi" ...')
 
-        params = (last, last, last, RGX_DENOMINAZIONE)
+        params = (last, last, last, stmts.RGX_DENOMINAZIONE)
         rows = self.database.execute_many(
-            INSERT_SINTESI, (params,)).rowcount
+            stmts.INSERT_SINTESI, (params,)).rowcount
 
         logging.info('INSERT : %s rows into sintesi', rows)
 
@@ -199,10 +198,10 @@ class Operations:
                 'INSERT : "%s" into "%s" ...', file_name, tab_name)
 
             nrows = self.insert(
-                file_path, tab_name, BATCH_SIZE)
+                file_path, tab_name, stmts.BATCH_SIZE)
 
             self.database.execute_many(
-                INSERT_LOADED, ((tab_name, file_name),))
+                stmts.INSERT_LOADED, ((tab_name, file_name),))
 
         else:
             logging.warning('INSERT : "%s" is empty', file_path)
