@@ -17,12 +17,12 @@ anac_ops = load.Operations(
     database=cnx, downdir=stmts.DEFAULT_DOWNLOAD_PATH)
 
 
-def index(packs):
+def index(pckgs):
     '''
     Crea un indice dei packages in base al nome della tabella
     '''
     idx = defaultdict(list)
-    for pack in sorted(packs, key=len):
+    for pack in sorted(pckgs, key=len):
         for tab in sorted(stmts.CREATE_TABLES, reverse=True, key=len):
             if pack.startswith((tab.replace('_', '-'), tab)):
                 idx[tab].append(pack)
