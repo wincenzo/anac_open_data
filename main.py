@@ -65,6 +65,7 @@ if __name__ == '__main__':
 
     dw_ld.add_argument('-k', '--keep',
                        nargs='*',
+                       default=[],
                        type=str,
                        metavar='NAME',
                        help='''provide tables name to keep when 
