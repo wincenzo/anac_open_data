@@ -1,9 +1,3 @@
-__all__ = [
-    'BATCH_SIZE', 'GET_TABLE_COLUMNS', 'INSERT_TABLES',
-    'HASH_KEY', 'ADD_ID', 'INSERT_SINTESI', 'INSERT_LOADED',
-    'GET_LOADED', 'RGX_DENOMINAZIONE', 'LAST_LOAD', 'CREATE_LOADED',
-]
-
 
 # CONSTANTS ################################################################################
 # Set these values to configure
