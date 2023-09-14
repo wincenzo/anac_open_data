@@ -484,11 +484,11 @@ CREATE_TABLES = {
         KEY idx_subappalti_cf_subappaltante (cf_subappaltante),
         KEY idx_subappalti_codice_fiscale (codice_fiscale))''',
 
-    'tipo_fattispecie_contrattuale': '''
-    CREATE TABLE IF NOT EXISTS tipo_fattispecie_contrattuale (
-        tipo_fattispecie_contrattuale_id VARCHAR(64) DEFAULT NULL,
-        tipo_fattispecie_contrattuale_denominazione VARCHAR(384) DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ))''',
+    # 'tipo_fattispecie_contrattuale': '''
+    # CREATE TABLE IF NOT EXISTS tipo_fattispecie_contrattuale (
+    #    tipo_fattispecie_contrattuale_id VARCHAR(64) DEFAULT NULL,
+    #    tipo_fattispecie_contrattuale_denominazione VARCHAR(384) DEFAULT NULL,
+    #    data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ))''',
 
     'bandi_cig_tipo_scelta_contraente': '''
     CREATE TABLE IF NOT EXISTS bandi_cig_tipo_scelta_contraente (

@@ -137,7 +137,9 @@ if __name__ == '__main__':
                                         logging.warning(
                                             '"%s" already donwloaded', file_path)
 
-                                    ops.load(table, file_name, file_path)
+                                    nrows = ops.load(
+                                        table, file_name, file_path)
+                                    tot_rows += nrows
 
                                     if clean and table not in keep:
                                         try:
