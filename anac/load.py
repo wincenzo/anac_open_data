@@ -12,10 +12,12 @@ from mysql.connector import errorcode, errors
 
 class DataBase:
     def __init__(self, host, database, user, password):
-        self.credentials = {'host': host,
-                            'database': database,
-                            'user': user,
-                            'password': password}
+        self.credentials = {
+            'host': host,
+            'database': database,
+            'user': user,
+            'password': password
+        }
 
     def execute_many(self, query, params=()):
         with connector.connect(**self.credentials,
@@ -45,14 +47,15 @@ class Operations:
         self.downdir = downdir
         self.db_name = self.database.credentials['database']
         self.loaded = self.get_loaded()
+        self.columns = None
 
     @property
     def columns(self):
         return self._columns
 
     @columns.setter
-    def columns(self, result):
-        self._columns = result
+    def columns(self, results):
+        self._columns = results
 
     def get_loaded(self):
         '''
@@ -197,8 +200,7 @@ class Operations:
             logging.info(
                 'INSERT : "%s" into "%s" ...', file_name, tab_name)
 
-            nrows = self.insert(
-                file_path, tab_name, stmts.BATCH_SIZE)
+            nrows = self.insert(file_path, tab_name, stmts.BATCH_SIZE)
 
             self.database.execute_many(
                 stmts.INSERT_LOADED, ((tab_name, file_name),))

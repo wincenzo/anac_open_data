@@ -19,7 +19,7 @@ anac_ops = load.Operations(
 
 def index(pckgs):
     '''
-    Crea un indice dei packages in base al nome della tabella
+    Crea un indice dei packages in base al nome della tabella.
     '''
     idx = defaultdict(list)
     for pack in sorted(pckgs, key=len):
@@ -28,7 +28,6 @@ def index(pckgs):
                 idx[tab].append(pack)
                 idx[tab].sort()
                 break
-
     return idx
 
 
@@ -91,12 +90,10 @@ if __name__ == '__main__':
             '''
             Esegue il download dei files, la creazione delle tabelle e
             l'inserimento dei file nelle tabelle controllando che non
-            siano stati inseriti in precedenza
+            siano stati inseriti in precedenza.
             '''
-            if tables:
-                for tab in tables:
-                    assert tab in stmts.CREATE_TABLES,\
-                        f'table "{tab}" not in database schema'
+            for tab in tables:
+                assert tab in stmts.CREATE_TABLES, f'table "{tab}" not in database schema'
 
             with RemoteCKAN(stmts.URL_ANAC) as api:
                 packages = api.action.package_list()
@@ -114,8 +111,10 @@ if __name__ == '__main__':
                         results = api.action.package_show(id=pack)
 
                         for file in results['resources']:
-                            if (file['format'] == 'JSON' and  # noqa: W504
-                                    file['mimetype'] == 'application/zip'):
+                            file_format = file['format']
+                            mimetype = file['mimetype']
+
+                            if file_format == 'JSON' and mimetype == 'application/zip':
                                 url, name = file['url'], file['name']
 
                                 file_name = f'{name}.json'
@@ -160,7 +159,7 @@ if __name__ == '__main__':
 
         def user_tables(ops, tables=args.tables):
             '''
-            Aggiunge le tabelle "cpv" e "province" non disponibili sul portale ANAC
+            Aggiunge le tabelle "cpv" e "province" non disponibili sul portale ANAC.
             '''
             tabs = (('cpv', 'cpv_tree.json'),
                     ('province', 'province.json'))
@@ -169,19 +168,15 @@ if __name__ == '__main__':
                 if not tables or tab in tables:
                     ops.create(stmts.CREATE_TABLES, tab, hash=True)
 
-                    tot_rows = 0
                     file_name = os.path.basename(path)
                     if file_name not in ops.loaded:
                         nrows = ops.load(tab, file_name, path)
-                        tot_rows += nrows
+                        logging.info(
+                            'INSERT : %s row inserted into "%s"', nrows, tab)
 
                     else:
                         logging.warning(
                             '"%s" already loaded', path)
-
-                    if tot_rows:
-                        logging.info(
-                            'INSERT : %s row inserted into "%s"', tot_rows, tab)
 
         down_n_load(anac_ops)
 
@@ -191,7 +186,7 @@ if __name__ == '__main__':
         def make_sintesi(ops):
             '''
             Esegue tutte le operazioni necessarie a creare ed inserire i dati nella
-            tabella "sintesi"
+            tabella "sintesi".
             '''
             ops.create(stmts.CREATE_SINTESI, 'sintesi', hash=True)
             ops.insert_sintesi()
@@ -204,26 +199,35 @@ if __name__ == '__main__':
     elif args.command == 'check':
         def check_columns(ops):
             '''
-            Trova eventuali colonne presenti nei file,
-            ma assenti nelle tabelle del db
+            Trova eventuali colonne presenti nei file, ma assenti nelle tabelle del db.
             '''
             missing = defaultdict(list)
-            for d in os.scandir(ops.downdir):
-                sub = next(os.scandir(d))
-                for f in os.scandir(sub):
-                    if os.stat(f).st_size > 0:
-                        row = next(ops.reader(f.path, refcols=None))
+
+            for dir in os.scandir(ops.downdir):
+                if not dir.is_dir():
+                    continue
+
+                sub_dir = next(os.scandir(dir))
+                if not sub_dir.is_dir():
+                    continue
+
+                for file in os.scandir(sub_dir):
+                    if os.path.isfile(file) and os.stat(file).st_size > 0:
+                        row = next(ops.reader(file.path, refcols=None))
                         row = sorted(row, key=len)
 
-                        db_cols = list(ops.get_columns(dir.name))
+                        db_cols = ops.get_columns(dir.name)
+                        db_cols = sorted(db_cols, reverse=True, key=len)
+
                         for col in row:
-                            for c in sorted(db_cols, reverse=True, key=len):
-                                if col.lower().startswith(c.lower()):
-                                    db_cols.remove(c)
+                            for db_col in db_cols:
+                                if col.lower().startswith(db_col.lower()):
+                                    db_cols.remove(db_col)
                                     break
                             else:
                                 missing[dir.name].append(col)
                         break
+
             return missing
 
         diff = check_columns(anac_ops)
