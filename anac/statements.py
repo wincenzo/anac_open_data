@@ -4,10 +4,10 @@
 
 URL_ANAC = 'https://dati.anticorruzione.it/opendata/'
 
-DB_CREDENTIALS = {'host': '193.204.187.101',
-                  'database': 'siap_test',
-                  'user': 'siap_user',
-                  'password': 'U@&GZ8UJMz'}
+DB_CREDENTIALS = {'host': 'xxx.xxx.xxx.xxx',
+                  'database': 'xxx',
+                  'user': 'xxx',
+                  'password': 'xxx'}
 
 DEFAULT_DOWNLOAD_PATH = 'anac_json/'
 

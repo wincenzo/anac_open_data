@@ -19,16 +19,16 @@ Inserire nella variabile ```CREDENTIALS``` i dati corrispondenti per la connessi
 
 ```python main.py load [OPTIONS]```
 
-esegue il download e l'inserimento di tutti i file disponbili sul portale ANAC
+esegue il download e l'inserimento dei file disponbili sul portale ANAC
 
 **options:**
 
 ```-h --help``` restituisce informazioni sui comandi
 
-```-s --skip``` permette di evitare il download dei file ed il caricamento per le tabelle indicate; default: "smartcig",
-per cricare senza omissioni aggungere l'opzione senza argomenti
+```-s --skip``` permette di evitare il download ed il caricamento dei file per le tabelle indicate; default: "smartcig",
+Per scaricare senza omissioni aggiungere l'opzione senza argomenti.
 
-```-t --tables <NAME> ...``` permette di scaricare ed inserire i file relativi ad una o più tabelle
+```-t --tables <NAME> ...``` permette di scaricare ed inserire i file relativi ad una o più tabelle indicate
 
 # Definizione dell tabella di sintesi
 
