@@ -1,13 +1,13 @@
 
 import json
 import logging
-import os
-from datetime import datetime
+from datetime import datetime, MINYEAR
 from itertools import islice
 
-import anac.statements as stmts
 from mysql import connector
 from mysql.connector import errorcode, errors
+
+from anac import statements as stmts
 
 
 class DataBase:
@@ -16,16 +16,15 @@ class DataBase:
             'host': host,
             'database': database,
             'user': user,
-            'password': password
-        }
+            'password': password}
 
-    def execute_many(self, query, params=()):
+    def execute_many(self, stmt, params=()):
         with connector.connect(**self.credentials,
                                buffered=True,
-                               pool_name='many') as cnx:
+                               pool_name='many',
+                               autocommit=True) as cnx:
             with cnx.cursor() as cur:
-                cur.executemany(query, params)
-                cnx.commit()
+                cur.executemany(stmt, params)
 
                 return cur
 
@@ -33,18 +32,17 @@ class DataBase:
         with connector.connect(**self.credentials,
                                buffered=True,
                                raise_on_warnings=True,
-                               pool_name='one') as cnx:
-            with cnx.cursor() as cur:
+                               pool_name='one',
+                               autocommit=True) as cnx:
+            with cnx.cursor(named_tuple=True) as cur:
                 cur.execute(query, params)
-                cnx.commit()
 
                 return cur
 
 
 class Operations:
-    def __init__(self, database, downdir):
+    def __init__(self, database):
         self.database = database
-        self.downdir = downdir
         self.db_name = self.database.credentials['database']
         self.loaded = self.get_loaded()
         self.columns = None
@@ -54,8 +52,8 @@ class Operations:
         return self._columns
 
     @columns.setter
-    def columns(self, results):
-        self._columns = results
+    def columns(self, value):
+        self._columns = value
 
     def get_loaded(self):
         '''
@@ -63,8 +61,8 @@ class Operations:
         '''
         loaded = ()
         try:
-            loaded = tuple(row[0]
-                           for row in self.database.execute(stmts.GET_LOADED))
+            loaded = tuple(
+                row.file_name for row in self.database.execute(stmts.GET_LOADED))
 
         except errors.ProgrammingError as err:
             if err.errno == errorcode.ER_NO_SUCH_TABLE:
@@ -72,24 +70,26 @@ class Operations:
 
                 logging.info('CREATE : "loaded"')
 
+            else:
+                logging.exception(err)
+
         return loaded
 
     def get_columns(self, table):
         '''
         Ritorna le tabelle contenute in una tabella.
         '''
-        return tuple(row[0] for row in self.database.execute(
+        return tuple(row.COLUMN_NAME for row in self.database.execute(
             stmts.GET_TABLE_COLUMNS, (table,)))
 
     @staticmethod
-    def reader(filepath, refcols):
+    def reader(file, refcols):
         '''
-        Generatore che ritorna una riga dai file json e selezionando solo
+        Generatore che ritorna una riga dai file json selezionando solo
         le colonne presenti anche nel database (a volte nei files vengono
         aggiunte delle nuove colonne non presenti nel db o con nomi differenti).
-        Inoltre assicura che i campi vuoti siano avvalorati correttamente e
-        che i valori nulli siano istanziati come "None" in modo che il
-        connettore li traduca in NULL durante l'inserimento.
+        Inoltre assicura che i campi vuoti siano avvalorati correttamente come
+        "None" in modo che il connettore li traduca in NULL durante l'inserimento.
         '''
         def fix(row):
             select = {}
@@ -97,8 +97,8 @@ class Operations:
                 _k = k.replace('-', '_')
                 if refcols:
                     for col in sorted(refcols, key=len, reverse=True):
-                        match = _k.lower().startswith(col.lower())
-                        if match and col not in select:
+                        starts = _k.lower().startswith(col.lower())
+                        if starts and col not in select:
                             select[col] = row[k] or None
                             break
                 else:
@@ -106,8 +106,7 @@ class Operations:
 
             return select
 
-        with open(filepath, encoding='utf8') as file:
-            yield from (json.loads(row, object_hook=fix) for row in file)
+        yield from (json.loads(row, object_hook=fix) for row in file)
 
     @staticmethod
     def batched_rows(reader, batch_size):
@@ -127,9 +126,11 @@ class Operations:
         try:
             self.database.execute(statements[table])
 
-        except errors.DatabaseError as err:
+        except errors.Error as err:
             if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
                 self.columns = self.get_columns(table)
+            else:
+                logging.exception(err)
 
         else:
             self.columns = self.get_columns(table)
@@ -145,30 +146,19 @@ class Operations:
 
             logging.info('CREATE : "%s" created', table)
 
-    def format_insert(self, table_name):
+    def insert(self, table_name, data):
         '''
-        Formatta dinamicamente l'insert statement per ogni tabella.
+        Esegue l'insert nel db.
         '''
         columns = ','.join(self.columns)
 
         values = [f'%({c})s' for c in self.columns]
         values = ','.join(values)
 
-        insert_stmt = stmts.INSERT_TABLES.format(table_name, columns, values)
+        insert_stmt = stmts.INSERT_TABLES.format(
+            table_name, columns, values)
 
-        return insert_stmt
-
-    def insert(self, file_path, table_name, batch_size):
-        '''
-        Esegue l'insert nel db.
-        '''
-        insert_stmt = self.format_insert(table_name)
-
-        rows = 0
-        reader = self.reader(file_path, self.columns)
-        batches = self.batched_rows(reader, batch_size)
-        for batch in batches:
-            rows += self.database.execute_many(insert_stmt, batch).rowcount
+        rows = self.database.execute_many(insert_stmt, data).rowcount
 
         return rows
 
@@ -178,11 +168,12 @@ class Operations:
         stati inseriti in precedenza confrontando la data di inserimento.
         '''
         last, = self.database.execute(stmts.LAST_LOAD).fetchone()
-        last = last or datetime(1990, 1, 1)
+        last = last or datetime(MINYEAR, 1, 1)
 
         logging.info('INSERT : "sintesi" ...')
 
-        params = (last, last, last, stmts.RGX_DENOMINAZIONE)
+        # params = (last, last, last, stmts.RGX_DENOMINAZIONE)
+        params = (stmts.RGX_DENOMINAZIONE, last)
         rows = self.database.execute_many(
             stmts.INSERT_SINTESI, (params,)).rowcount
 
@@ -190,22 +181,21 @@ class Operations:
 
         return rows
 
-    def load(self, tab_name, file_name, file_path):
+    def load(self, file, tab_name, file_name):
         '''
         Gestisce l'inserimento dei file ed aggiorna la tabella "loaded".
         '''
         nrows = 0
 
-        if os.stat(file_path).st_size > 0:
-            logging.info(
-                'INSERT : "%s" into "%s" ...', file_name, tab_name)
+        logging.info(
+            'INSERT : "%s" into "%s" ...', file_name, tab_name)
 
-            nrows = self.insert(file_path, tab_name, stmts.BATCH_SIZE)
+        reader = self.reader(file, self.columns)
+        batches = self.batched_rows(reader, stmts.BATCH_SIZE)
 
-            self.database.execute_many(
-                stmts.INSERT_LOADED, ((tab_name, file_name),))
+        for batch in batches:
+            nrows += self.insert(tab_name, batch)
 
-        else:
-            logging.warning('INSERT : "%s" is empty', file_path)
+        self.database.execute(stmts.INSERT_LOADED, (tab_name, file_name))
 
         return nrows

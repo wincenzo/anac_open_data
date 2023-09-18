@@ -3,23 +3,23 @@ import logging
 import os
 from collections import defaultdict
 from io import BytesIO
-from pprint import pprint
 from urllib.request import urlopen
 from zipfile import ZipFile
 
 from ckanapi import RemoteCKAN
 
-from anac import load
+from anac.load import DataBase, Operations
 from anac import statements as stmts
 
-cnx = load.DataBase(**stmts.DB_CREDENTIALS)
-anac_ops = load.Operations(
-    database=cnx, downdir=stmts.DEFAULT_DOWNLOAD_PATH)
+
+cnx = DataBase(**stmts.DB_CREDENTIALS)
+
+anac_ops = Operations(database=cnx)
 
 
 def index(pckgs):
     '''
-    Crea un indice dei packages in base al nome della tabella.
+    Crea un indice dei package in base al nome della tabella.
     '''
     idx = defaultdict(list)
     for pack in sorted(pckgs, key=len):
@@ -51,18 +51,6 @@ if __name__ == '__main__':
                        help='''provide tables name to insert into db;
                        if missing insert all tables''')
 
-    dw_ld.add_argument('-c', '--clean',
-                       action='store_true',
-                       help='deletes file after it is inserted into db')
-
-    dw_ld.add_argument('-k', '--keep',
-                       nargs='*',
-                       default=[],
-                       type=str,
-                       metavar='NAME',
-                       help='''provide tables name to keep when
-                       "clean" option is called''')
-
     dw_ld.add_argument('-s', '--skip',
                        nargs='*',
                        default=['smartcig'],
@@ -75,87 +63,65 @@ if __name__ == '__main__':
                                     help='''executes all steps to make the table
                                     "sintesi" and create the view "sintesi_cpv"''')
 
-    check = subparsers.add_parser('check',
-                                  prog='check_columns',
-                                  help='checks for columns mismatch between files and tables')
-
     args = parser.parse_args()
 
     if args.command == 'load':
         def down_n_load(ops,
                         skip=args.skip,
-                        tables=args.tables,
-                        clean=args.clean,
-                        keep=args.keep):
+                        tables=args.tables):
             '''
             Esegue il download dei files, la creazione delle tabelle e
             l'inserimento dei file nelle tabelle controllando che non
             siano stati inseriti in precedenza.
             '''
             for tab in tables:
-                assert tab in stmts.CREATE_TABLES, f'table "{tab}" not in database schema'
+                assert tab in stmts.CREATE_TABLES,\
+                    f'table "{tab}" not in database schema'
 
             with RemoteCKAN(stmts.URL_ANAC) as api:
                 packages = api.action.package_list()
                 pckgs_idx = index(packages)
 
-                tables = tables or pckgs_idx
-                tables = set(tables) - set(skip)
+                tables = set(tables or pckgs_idx) - set(skip)
 
                 for table in tables:
                     tot_rows = 0
                     for pack in pckgs_idx[table]:
-                        pack_path = os.path.join(
-                            stmts.DEFAULT_DOWNLOAD_PATH, table, pack)
-
                         results = api.action.package_show(id=pack)
 
-                        for file in results['resources']:
-                            file_format = file['format']
-                            mimetype = file['mimetype']
+                        for res in results['resources']:
+                            format = res['format'] == 'JSON'
+                            mimetype = res['mimetype'] == 'application/zip'
 
-                            if file_format == 'JSON' and mimetype == 'application/zip':
-                                url, name = file['url'], file['name']
-
+                            if format and mimetype:
+                                url, name = res['url'], res['name']
                                 file_name = f'{name}.json'
-                                file_path = os.path.join(pack_path, file_name)
 
                                 if file_name not in ops.loaded:
                                     ops.create(stmts.CREATE_TABLES,
                                                table, hash=True)
 
-                                    if not os.path.isfile(file_path):
-                                        logging.info(
-                                            'DOWNLOAD : "%s"', file_path)
-
-                                        with urlopen(url) as resp:
-                                            zfile = BytesIO(resp.read())
-                                            with ZipFile(zfile) as zfile:
-                                                zfile.extractall(pack_path)
-                                    else:
-                                        logging.warning(
-                                            '"%s" already donwloaded', file_path)
-
-                                    nrows = ops.load(
-                                        table, file_name, file_path)
-                                    tot_rows += nrows
-
-                                    if clean and table not in keep:
-                                        try:
-                                            os.remove(file_path)
+                                    try:
+                                        with urlopen(url) as res:
                                             logging.info(
-                                                '"%s" deleted', file_path)
+                                                'DOWNLOAD : "%s"', file_name)
+                                            zfile = BytesIO(res.read())
+                                            with ZipFile(zfile) as zfile:
+                                                with zfile.open(file_name) as file:
+                                                    nrows = ops.load(
+                                                        file, table, file_name)
+                                                    tot_rows += nrows
 
-                                        except FileNotFoundError:
-                                            ...
+                                    except StopIteration:
+                                        continue
 
                                 else:
                                     logging.warning(
-                                        '"%s" already loaded', file_path)
+                                        '"%s" already loaded', file_name)
 
                     if tot_rows:
                         logging.info(
-                            'INSERT : %s row inserted into "%s"', tot_rows, table)
+                            'INSERT : *** %s row inserted into "%s" ***', tot_rows, table)
 
         def user_tables(ops, tables=args.tables):
             '''
@@ -178,9 +144,13 @@ if __name__ == '__main__':
                         logging.warning(
                             '"%s" already loaded', path)
 
-        down_n_load(anac_ops)
+        def make_db(ops):
+            down_n_load(ops)
+            user_tables(ops)
 
-        user_tables(anac_ops)
+            logging.info('COMPLETED')
+
+        make_db(anac_ops)
 
     elif args.command == 'sintesi':
         def make_sintesi(ops):
@@ -195,40 +165,3 @@ if __name__ == '__main__':
                        'sintesi_cpv', key=False, hash=False)
 
         make_sintesi(anac_ops)
-
-    elif args.command == 'check':
-        def check_columns(ops):
-            '''
-            Trova eventuali colonne presenti nei file, ma assenti nelle tabelle del db.
-            '''
-            missing = defaultdict(list)
-
-            for dir in os.scandir(ops.downdir):
-                if not dir.is_dir():
-                    continue
-
-                sub_dir = next(os.scandir(dir))
-                if not sub_dir.is_dir():
-                    continue
-
-                for file in os.scandir(sub_dir):
-                    if os.path.isfile(file) and os.stat(file).st_size > 0:
-                        row = next(ops.reader(file.path, refcols=None))
-                        row = sorted(row, key=len)
-
-                        db_cols = ops.get_columns(dir.name)
-                        db_cols = sorted(db_cols, reverse=True, key=len)
-
-                        for col in row:
-                            for db_col in db_cols:
-                                if col.lower().startswith(db_col.lower()):
-                                    db_cols.remove(db_col)
-                                    break
-                            else:
-                                missing[dir.name].append(col)
-                        break
-
-            return missing
-
-        diff = check_columns(anac_ops)
-        pprint(diff)

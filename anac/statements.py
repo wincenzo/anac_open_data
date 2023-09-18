@@ -4,10 +4,10 @@
 
 URL_ANAC = 'https://dati.anticorruzione.it/opendata/'
 
-DB_CREDENTIALS = {'host': 'xxx.xxx.xxx.xxx',
-                  'database': 'xxx',
-                  'user': 'xxx',
-                  'password': 'xxx'}
+DB_CREDENTIALS = {'host': '193.204.187.101',
+                  'database': 'siap_test',
+                  'user': 'siap_user',
+                  'password': 'U@&GZ8UJMz'}
 
 DEFAULT_DOWNLOAD_PATH = 'anac_json/'
 
@@ -43,7 +43,7 @@ GET_ALL_COLUMNS = '''
 INSERT_TABLES = 'INSERT IGNORE INTO {} ({}) VALUES({})'
 
 HASH_KEY = '''ALTER TABLE {} ADD COLUMN {}_hash BINARY(20) AS
-(UNHEX(SHA(CONCAT_WS(";",{})))) STORED INVISIBLE UNIQUE'''
+                (UNHEX(SHA(CONCAT_WS(";",{})))) STORED INVISIBLE UNIQUE'''
 
 ADD_ID = 'ALTER TABLE {} ADD COLUMN {}_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY'
 
@@ -72,7 +72,8 @@ CREATE_TABLES = {
         id_aggiudicazione BIGINT UNSIGNED DEFAULT NULL,
         data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_aggiudicatari_id_aggiudicazione (id_aggiudicazione),
-        KEY idx_aggiudicatari_cig (cig))''',
+        KEY idx_aggiudicatari_cig (cig),
+        KEY idx_aggiudicatari_data (data_inserimento))''',
 
     'aggiudicazioni': '''
     CREATE TABLE IF NOT EXISTS aggiudicazioni (
@@ -96,7 +97,8 @@ CREATE_TABLES = {
         minimo_ribasso FLOAT DEFAULT NULL,
         data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_aggiudicazioni_id_aggiudicazione (id_aggiudicazione),
-        KEY idx_aggiudicazioni_cig (cig))''',
+        KEY idx_aggiudicazioni_cig (cig),
+        KEY idx_aggiudicazioni_data (data_inserimento))''',
 
     'attestazioni_soa': '''
     CREATE TABLE IF NOT EXISTS attestazioni_soa (
@@ -181,7 +183,8 @@ CREATE_TABLES = {
         KEY idx_cig_codice_ausa (codice_ausa),
         KEY idx_cig_numero_gara (numero_gara),
         KEY idx_cig_cig_numero_gara (cig,numero_gara),
-        KEY idx_cig_cf_amministrazione_appaltante (cf_amministrazione_appaltante))''',
+        KEY idx_cig_cf_amministrazione_appaltante (cf_amministrazione_appaltante),
+        KEY idx_cig_data (data_inserimento))''',
 
     'smartcig': '''
     CREATE TABLE IF NOT EXISTS smartcig (
@@ -525,8 +528,6 @@ CREATE_TABLES = {
         data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP )) ''',
 }
 
-RGX_DENOMINAZIONE = r"\\.|\\?|\\'|\\|&#\\d+;|&\\w+;|^&|^,|,$|^\\.|\\*"
-
 CREATE_SINTESI = {
     'sintesi': '''
     CREATE TABLE IF NOT EXISTS sintesi (
@@ -583,6 +584,119 @@ CREATE_SINTESI = {
 
 LAST_LOAD = 'SELECT MAX(data_inserimento) AS last_ins FROM sintesi'
 
+RGX_DENOMINAZIONE = r"\\.|\\?|\\'|\\|&#\\d+;|&\\w+;|^&|^,|,$|^\\.|\\*"
+
+# INSERT_SINTESI = '''
+#    INSERT IGNORE INTO sintesi (codice_fiscale,
+#        denominazione,
+#        ruolo,
+#        tipo_soggetto,
+#        importo_aggiudicazione,
+#        importo_lotto,
+#        data_aggiudicazione_definitiva,
+#        criterio_aggiudicazione,
+#        massimo_ribasso,
+#        minimo_ribasso,
+#        numero_offerte_ammesse,
+#        numero_offerte_escluse,
+#        num_imprese_offerenti,
+#        cig,
+#        cod_cpv,
+#        descrizione_cpv,
+#        oggetto_lotto,
+#        oggetto_gara,
+#        tipo_scelta_contraente,
+#        oggetto_principale_contratto,
+#        modalita_realizzazione,
+#        regione,
+#        provincia,
+#        stazione_appaltante,
+#        cf_stazione_appaltante,
+#        provincia_codice,
+#        numero_gara,
+#        flag_subappalto)
+#    WITH
+#        ag AS (
+#            SELECT
+#                codice_fiscale,
+#                denominazione,
+#                ruolo,
+#                tipo_soggetto,
+#                id_aggiudicazione
+#            FROM aggiudicatari
+#            WHERE data_inserimento > %s),
+#        a AS (
+#            SELECT
+#                cig,
+#                importo_aggiudicazione,
+#                data_aggiudicazione_definitiva,
+#                criterio_aggiudicazione,
+#                massimo_ribasso,
+#                minimo_ribasso,
+#                numero_offerte_ammesse,
+#                numero_offerte_escluse,
+#                num_imprese_offerenti,
+#                flag_subappalto,
+#                id_aggiudicazione
+#            FROM aggiudicazioni
+#            WHERE data_inserimento > %s),
+#        c AS (
+#            SELECT
+#                importo_lotto,
+#                cig,
+#                cod_cpv,
+#                descrizione_cpv,
+#                oggetto_lotto,
+#                oggetto_gara,
+#                tipo_scelta_contraente,
+#                oggetto_principale_contratto,
+#                modalita_realizzazione,
+#                numero_gara,
+#                cf_amministrazione_appaltante
+#            FROM cig
+#            WHERE data_inserimento > %s)
+#    SELECT
+#        ag.codice_fiscale,
+#        TRIM(regexp_replace(ag.denominazione, %s, "")) AS denominazione,
+#        ag.ruolo,
+#        ag.tipo_soggetto,
+#        a.importo_aggiudicazione,
+#        c.importo_lotto,
+#        a.data_aggiudicazione_definitiva,
+#        a.criterio_aggiudicazione,
+#        a.massimo_ribasso,
+#        a.minimo_ribasso,
+#        a.numero_offerte_ammesse,
+#        a.numero_offerte_escluse,
+#        a.num_imprese_offerenti,
+#        c.cig,
+#        c.cod_cpv,
+#        TRIM(TRAILING '.' FROM c.descrizione_cpv) AS descrizione_cpv,
+#        c.oggetto_lotto,
+#        c.oggetto_gara,
+#        c.tipo_scelta_contraente,
+#        c.oggetto_principale_contratto,
+#        c.modalita_realizzazione,
+#        pr.regione,
+#        pr.provincia,
+#        sa.denominazione AS stazione_appaltante,
+#        sa.codice_fiscale AS cf_stazione_appaltante,
+#        sa.provincia_codice,
+#        c.numero_gara,
+#        a.flag_subappalto
+#    FROM
+#        ag
+#    JOIN
+#        a ON a.id_aggiudicazione = ag.id_aggiudicazione
+#        AND a.data_inserimento > %s
+#    JOIN
+#        c ON c.cig = a.cig
+#    JOIN
+#        stazioni_appaltanti sa ON sa.codice_fiscale = c.cf_amministrazione_appaltante
+#    JOIN
+#        province pr ON sa.provincia_codice = pr.provincia_codice
+#    '''
+
 INSERT_SINTESI = '''
     INSERT IGNORE INTO sintesi (codice_fiscale,
         denominazione,
@@ -612,46 +726,6 @@ INSERT_SINTESI = '''
         provincia_codice,
         numero_gara,
         flag_subappalto)
-    WITH
-        ag AS (
-            SELECT
-                codice_fiscale,
-                denominazione,
-                ruolo,
-                tipo_soggetto,
-                id_aggiudicazione
-            FROM aggiudicatari
-            WHERE data_inserimento > %s),
-        a AS (
-            SELECT
-                cig,
-                importo_aggiudicazione,
-                data_aggiudicazione_definitiva,
-                criterio_aggiudicazione,
-                massimo_ribasso,
-                minimo_ribasso,
-                numero_offerte_ammesse,
-                numero_offerte_escluse,
-                num_imprese_offerenti,
-                flag_subappalto,
-                id_aggiudicazione
-            FROM aggiudicazioni
-            WHERE data_inserimento > %s),
-        c AS (
-            SELECT
-                importo_lotto,
-                cig,
-                cod_cpv,
-                descrizione_cpv,
-                oggetto_lotto,
-                oggetto_gara,
-                tipo_scelta_contraente,
-                oggetto_principale_contratto,
-                modalita_realizzazione,
-                numero_gara,
-                cf_amministrazione_appaltante
-            FROM cig
-            WHERE data_inserimento > %s)
     SELECT
         ag.codice_fiscale,
         TRIM(regexp_replace(ag.denominazione, %s, "")) AS denominazione,
@@ -682,16 +756,18 @@ INSERT_SINTESI = '''
         c.numero_gara,
         a.flag_subappalto
     FROM
-        ag
+        aggiudicatari ag
     JOIN
-        a ON a.id_aggiudicazione = ag.id_aggiudicazione
+        aggiudicazioni a ON
+        a.id_aggiudicazione = ag.id_aggiudicazione AND
+        a.data_inserimento > %s
     JOIN
-        c ON c.cig = a.cig
+        cig c ON c.cig = a.cig
     JOIN
         stazioni_appaltanti sa ON sa.codice_fiscale = c.cf_amministrazione_appaltante
     JOIN
-    province pr ON sa.provincia_codice = pr.provincia_codice
-    '''
+        province pr ON sa.provincia_codice = pr.provincia_codice'''
+
 
 CREATEVIEW_SINTESI_CPV = {
     'sintesi_cpv': '''
