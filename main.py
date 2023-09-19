@@ -148,7 +148,7 @@ if __name__ == '__main__':
             down_n_load(ops)
             user_tables(ops)
 
-            logging.info('COMPLETED')
+            logging.info('*** COMPLETED ***')
 
         make_db(anac_ops)
 

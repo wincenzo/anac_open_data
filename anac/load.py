@@ -12,32 +12,33 @@ from anac import statements as stmts
 
 class DataBase:
     def __init__(self, host, database, user, password):
-        self.credentials = {
-            'host': host,
-            'database': database,
-            'user': user,
-            'password': password}
+        self.credentials = {'host': host,
+                            'database': database,
+                            'user': user,
+                            'password': password}
 
-    def execute_many(self, stmt, params=()):
-        with connector.connect(**self.credentials,
-                               buffered=True,
-                               pool_name='many',
-                               autocommit=True) as cnx:
-            with cnx.cursor() as cur:
-                cur.executemany(stmt, params)
+    def execute(self, stmt, params=(), many=False):
+        pool = connector.pooling.MySQLConnectionPool(
+            **self.credentials,
+            pool_name='anac',
+            buffered=True)
 
-                return cur
+        if many:
+            pool.set_config(raise_on_warnings=False)
+            cnx = pool.get_connection()
+            cur = cnx.cursor()
+            cur.executemany(stmt, params)
 
-    def execute(self, stmt, params=()):
-        with connector.connect(**self.credentials,
-                               buffered=True,
-                               raise_on_warnings=True,
-                               pool_name='one',
-                               autocommit=True) as cnx:
-            with cnx.cursor(named_tuple=True) as cur:
-                cur.execute(stmt, params)
+        else:
+            pool.set_config(raise_on_warnings=True)
+            cnx = pool.get_connection()
+            cur = cnx.cursor(named_tuple=True)
+            cur.execute(stmt, params)
 
-                return cur
+        cur.close()
+        cnx.close()
+
+        return cur
 
 
 class Operations:
@@ -158,7 +159,8 @@ class Operations:
         insert_stmt = stmts.INSERT_TABLES.format(
             table_name, columns, values)
 
-        rows = self.database.execute_many(insert_stmt, data).rowcount
+        rows = self.database.execute(
+            insert_stmt, data, many=True).rowcount
 
         return rows
 
@@ -174,10 +176,10 @@ class Operations:
 
         # params = (last, last, last, stmts.RGX_DENOMINAZIONE)
         params = (stmts.RGX_DENOMINAZIONE, last)
-        rows = self.database.execute_many(
-            stmts.INSERT_SINTESI, (params,)).rowcount
+        rows = self.database.execute(
+            stmts.INSERT_SINTESI, (params,), many=True).rowcount
 
-        logging.info('INSERT : %s rows into sintesi', rows)
+        logging.info('INSERT : *** %s rows into sintesi ***', rows)
 
         return rows
 
@@ -185,7 +187,7 @@ class Operations:
         '''
         Gestisce l'inserimento dei file ed aggiorna la tabella "loaded".
         '''
-        nrows = 0
+        rows = 0
 
         logging.info(
             'INSERT : "%s" into "%s" ...', file_name, tab_name)
@@ -194,8 +196,8 @@ class Operations:
         batches = self.batched_rows(reader, stmts.BATCH_SIZE)
 
         for batch in batches:
-            nrows += self.insert(tab_name, batch)
+            rows += self.insert(tab_name, batch)
 
         self.database.execute(stmts.INSERT_LOADED, (tab_name, file_name))
 
-        return nrows
+        return rows
