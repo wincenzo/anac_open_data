@@ -28,14 +28,14 @@ class DataBase:
 
                 return cur
 
-    def execute(self, query, params=()):
+    def execute(self, stmt, params=()):
         with connector.connect(**self.credentials,
                                buffered=True,
                                raise_on_warnings=True,
                                pool_name='one',
                                autocommit=True) as cnx:
             with cnx.cursor(named_tuple=True) as cur:
-                cur.execute(query, params)
+                cur.execute(stmt, params)
 
                 return cur
 
