@@ -34,41 +34,41 @@ def index(pckgs):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='main')
 
-    subparsers = parser.add_subparsers(title='subcommands',
-                                       dest='command',
-                                       required=True)
+    subparsers = parser.add_subparsers(
+        title='subcommands',
+        dest='command',
+        required=True)
 
-    dw_ld = subparsers.add_parser('load',
-                                  prog='make_database',
-                                  help='''executes all steps for db creation:
-                                  download files-create tables-insert data''')
+    dw_ld = subparsers.add_parser(
+        'load',
+        prog='make_database',
+        help='executes all steps for db creation: download files-create tables-insert data')
 
-    dw_ld.add_argument('-t', '--tables',
-                       nargs='*',
-                       default=[],
-                       type=str,
-                       metavar='NAME',
-                       help='''provide tables name to insert into db;
-                       if missing insert all tables''')
+    dw_ld.add_argument(
+        '-t', '--tables',
+        nargs='*',
+        default=[],
+        type=str,
+        metavar='NAME',
+        help='provide tables name to insert into db; if missing insert all tables')
 
-    dw_ld.add_argument('-s', '--skip',
-                       nargs='*',
-                       default=['smartcig'],
-                       type=str,
-                       metavar='NAME',
-                       help='provide tables name to avoid download and load')
+    dw_ld.add_argument(
+        '-s', '--skip',
+        nargs='*',
+        default=['smartcig'],
+        type=str,
+        metavar='NAME',
+        help='provide tables name to avoid download and load')
 
-    sintesi = subparsers.add_parser('sintesi',
-                                    prog='make_sintesi',
-                                    help='''executes all steps to make the table
-                                    "sintesi" and create the view "sintesi_cpv"''')
+    sintesi = subparsers.add_parser(
+        'sintesi',
+        prog='make_sintesi',
+        help='executes all steps to make the table "sintesi" and create the view "sintesi_cpv"')
 
     args = parser.parse_args()
 
     if args.command == 'load':
-        def down_n_load(ops,
-                        skip=args.skip,
-                        tables=args.tables):
+        def down_n_load(ops, skip=args.skip, tables=args.tables):
             '''
             Esegue il download dei files, la creazione delle tabelle e
             l'inserimento dei file nelle tabelle controllando che non
@@ -110,6 +110,7 @@ if __name__ == '__main__':
                                                 with zfile.open(file_name) as file:
                                                     nrows = ops.load(
                                                         file, table, file_name)
+
                                                     tot_rows += nrows
 
                                     except StopIteration:
