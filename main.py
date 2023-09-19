@@ -70,9 +70,9 @@ if __name__ == '__main__':
     if args.command == 'load':
         def down_n_load(ops, skip=args.skip, tables=args.tables):
             '''
-            Esegue il download dei files, la creazione delle tabelle e
-            l'inserimento dei file nelle tabelle controllando che non
-            siano stati inseriti in precedenza.
+            Esegue il download dei files in memoria, la creazione delle
+            tabelle e l'inserimento dei file nelle tabelle controllando
+            che non siano stati inseriti in precedenza.
             '''
             for tab in tables:
                 assert tab in stmts.CREATE_TABLES,\
