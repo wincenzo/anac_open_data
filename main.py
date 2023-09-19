@@ -86,6 +86,7 @@ if __name__ == '__main__':
 
                 for table in tables:
                     tot_rows = 0
+
                     for pack in pckgs_idx[table]:
                         results = api.action.package_show(id=pack)
 
@@ -139,9 +140,9 @@ if __name__ == '__main__':
 
                     file_name = os.path.basename(path)
                     if file_name not in ops.loaded:
-                        nrows = ops.load(tab, file_name, path)
+                        rows = ops.load(tab, file_name, path)
                         logging.info(
-                            'INSERT : %s row inserted into "%s"', nrows, tab)
+                            'INSERT : *** %s row inserted into "%s" ***', rows, tab)
 
                     else:
                         logging.warning(
