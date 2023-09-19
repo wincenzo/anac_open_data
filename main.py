@@ -105,7 +105,9 @@ if __name__ == '__main__':
                                         with urlopen(url) as res:
                                             logging.info(
                                                 'DOWNLOAD : "%s"', file_name)
+
                                             zfile = BytesIO(res.read())
+
                                             with ZipFile(zfile) as zfile:
                                                 with zfile.open(file_name) as file:
                                                     nrows = ops.load(
