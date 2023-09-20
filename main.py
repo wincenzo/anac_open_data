@@ -8,9 +8,8 @@ from zipfile import ZipFile
 
 from ckanapi import RemoteCKAN
 
-from anac.load import DataBase, Operations
 from anac import statements as stmts
-
+from anac.load import DataBase, Operations
 
 cnx = DataBase(**stmts.DB_CREDENTIALS)
 
@@ -111,10 +110,10 @@ if __name__ == '__main__':
 
                                             with ZipFile(zfile) as zfile:
                                                 with zfile.open(file_name) as file:
-                                                    nrows = ops.load(
+                                                    rows = ops.load(
                                                         file, table, file_name)
 
-                                                    tot_rows += nrows
+                                                    tot_rows += rows
 
                                     except StopIteration:
                                         continue
@@ -129,7 +128,8 @@ if __name__ == '__main__':
 
         def user_tables(ops, tables=args.tables):
             '''
-            Aggiunge le tabelle "cpv" e "province" non disponibili sul portale ANAC.
+            Aggiunge le tabelle "cpv" e "province" non disponibili sul
+            portale ANAC.
             '''
             tabs = (('cpv', 'cpv_tree.json'),
                     ('province', 'province.json'))
@@ -140,10 +140,11 @@ if __name__ == '__main__':
 
                     file_name = os.path.basename(path)
                     if file_name not in ops.loaded:
-                        rows = ops.load(tab, file_name, path)
-                        logging.info(
-                            'INSERT : *** %s row inserted into "%s" ***', rows, tab)
+                        with open(path) as file:
+                            rows = ops.load(file, tab, file_name)
 
+                            logging.info(
+                                'INSERT : *** %s row inserted into "%s" ***', rows, tab)
                     else:
                         logging.warning(
                             '"%s" already loaded', path)
