@@ -1,12 +1,12 @@
 
 import json
 import logging
-from datetime import datetime, MINYEAR
-from itertools import islice
 import sys
+from datetime import MINYEAR, datetime
+from itertools import islice
 
-from mysql import connector
 from mysql.connector import errorcode, errors
+from mysql.connector.pooling import MySQLConnectionPool
 
 from anac import statements as stmts
 
@@ -19,7 +19,7 @@ class DataBase:
                             'password': password}
 
     def execute(self, stmt, params=(), many=False):
-        pool = connector.pooling.MySQLConnectionPool(
+        pool = MySQLConnectionPool(
             **self.credentials,
             pool_name='anac',
             buffered=True,
