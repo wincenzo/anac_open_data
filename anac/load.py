@@ -3,6 +3,7 @@ import json
 import logging
 from datetime import datetime, MINYEAR
 from itertools import islice
+import sys
 
 from mysql import connector
 from mysql.connector import errorcode, errors
@@ -21,7 +22,8 @@ class DataBase:
         pool = connector.pooling.MySQLConnectionPool(
             **self.credentials,
             pool_name='anac',
-            buffered=True)
+            buffered=True,
+            autocommit=True)
 
         if many:
             pool.set_config(raise_on_warnings=False)
@@ -45,8 +47,24 @@ class Operations:
     def __init__(self, database):
         self.database = database
         self.db_name = self.database.credentials['database']
-        self.loaded = self.get_loaded()
+        self.loaded = ()
         self.columns = None
+
+        try:
+            loaded = tuple(
+                row.file_name for row in self.database.execute(stmts.GET_LOADED))
+
+            self.loaded = loaded
+
+        except errors.Error as err:
+            if err.errno == errorcode.ER_NO_SUCH_TABLE:
+                self.database.execute(stmts.CREATE_LOADED)
+
+                logging.info('CREATE : "loaded"')
+
+            else:
+                logging.exception(err)
+                sys.exit()
 
     @property
     def columns(self):
@@ -56,29 +74,9 @@ class Operations:
     def columns(self, value):
         self._columns = value
 
-    def get_loaded(self):
-        '''
-        Ritorna l'elenco dei file già caricati nel db.
-        '''
-        loaded = ()
-        try:
-            loaded = tuple(
-                row.file_name for row in self.database.execute(stmts.GET_LOADED))
-
-        except errors.ProgrammingError as err:
-            if err.errno == errorcode.ER_NO_SUCH_TABLE:
-                self.database.execute(stmts.CREATE_LOADED)
-
-                logging.info('CREATE : "loaded"')
-
-            else:
-                logging.exception(err)
-
-        return loaded
-
     def get_columns(self, table):
         '''
-        Ritorna le tabelle contenute in una tabella.
+        Ritorna le colonne contenute in una tabella.
         '''
         return tuple(row.COLUMN_NAME for row in self.database.execute(
             stmts.GET_TABLE_COLUMNS, (table,)))
@@ -130,6 +128,7 @@ class Operations:
         except errors.Error as err:
             if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
                 self.columns = self.get_columns(table)
+
             else:
                 logging.exception(err)
 
@@ -145,7 +144,7 @@ class Operations:
                 pk_stmt = stmts.ADD_ID.format(table, table)
                 self.database.execute(pk_stmt)
 
-            logging.info('CREATE : "%s" created', table)
+            logging.info('CREATE : "%s"', table)
 
     def insert(self, table_name, data):
         '''
@@ -174,12 +173,11 @@ class Operations:
 
         logging.info('INSERT : "sintesi" ...')
 
-        # params = (last, last, last, stmts.RGX_DENOMINAZIONE)
         params = (stmts.RGX_DENOMINAZIONE, last)
         rows = self.database.execute(
             stmts.INSERT_SINTESI, (params,), many=True).rowcount
 
-        logging.info('INSERT : *** %s rows into sintesi ***', rows)
+        logging.info('INSERT :*** %s rows into sintesi ***', rows)
 
         return rows
 
