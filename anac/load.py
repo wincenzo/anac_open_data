@@ -46,7 +46,6 @@ class DataBase:
 class Operations:
     def __init__(self, database):
         self.database = database
-        self.db_name = self.database.credentials['database']
         self.loaded = ()
         self.columns = None
 
@@ -87,7 +86,7 @@ class Operations:
         Generatore che ritorna una riga dai file json selezionando solo
         le colonne presenti anche nel database (a volte nei files vengono
         aggiunte delle nuove colonne non presenti nel db o con nomi differenti).
-        Inoltre assicura che i campi vuoti siano avvalorati correttamente come
+        Inoltre assicura che i campi vuoti siano avvalorati correttamente in
         "None" in modo che il connettore li traduca in NULL durante l'inserimento.
         '''
         def fix(row):
@@ -177,7 +176,7 @@ class Operations:
         rows = self.database.execute(
             stmts.INSERT_SINTESI, (params,), many=True).rowcount
 
-        logging.info('INSERT :*** %s rows into sintesi ***', rows)
+        logging.info('INSERT : *** %s rows into sintesi ***', rows)
 
         return rows
 
