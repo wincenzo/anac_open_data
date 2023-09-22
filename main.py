@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     dw_ld = subparsers.add_parser(
         'load',
-        prog='make_database',
+        prog='make_db',
         help='executes all steps for db creation: download files-create tables-insert data')
 
     dw_ld.add_argument(
@@ -58,11 +58,6 @@ if __name__ == '__main__':
         type=str,
         metavar='NAME',
         help='provide tables name to avoid download and load')
-
-    sintesi = subparsers.add_parser(
-        'sintesi',
-        prog='make_sintesi',
-        help='executes all steps to make the table "sintesi" and create the view "sintesi_cpv"')
 
     args = parser.parse_args()
 
@@ -106,13 +101,10 @@ if __name__ == '__main__':
                                             logging.info(
                                                 'DOWNLOAD : "%s"', file_name)
 
-                                            zfile = BytesIO(res.read())
-
-                                            with ZipFile(zfile) as zfile:
+                                            with ZipFile(BytesIO(res.read())) as zfile:
                                                 with zfile.open(file_name) as file:
                                                     rows = ops.load(
                                                         file, table, file_name)
-
                                                     tot_rows += rows
 
                                     except StopIteration:
@@ -156,17 +148,3 @@ if __name__ == '__main__':
             logging.info('*** COMPLETED ***')
 
         make_db(anac_ops)
-
-    elif args.command == 'sintesi':
-        def make_sintesi(ops):
-            '''
-            Esegue tutte le operazioni necessarie a creare ed inserire i dati nella
-            tabella "sintesi".
-            '''
-            ops.create(stmts.CREATE_SINTESI, 'sintesi', hash=True)
-            ops.insert_sintesi()
-
-            ops.create(stmts.CREATEVIEW_SINTESI_CPV,
-                       'sintesi_cpv', key=False, hash=False)
-
-        make_sintesi(anac_ops)

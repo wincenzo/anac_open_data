@@ -2,7 +2,6 @@
 import json
 import logging
 import sys
-from datetime import MINYEAR, datetime
 from itertools import islice
 
 from mysql.connector import errorcode, errors
@@ -46,18 +45,18 @@ class DataBase:
 class Operations:
     def __init__(self, database):
         self.database = database
-        self.loaded = ()
+
         self.columns = None
 
         try:
-            loaded = tuple(
+            self.loaded = tuple(
                 row.file_name for row in self.database.execute(stmts.GET_LOADED))
-
-            self.loaded = loaded
 
         except errors.Error as err:
             if err.errno == errorcode.ER_NO_SUCH_TABLE:
                 self.database.execute(stmts.CREATE_LOADED)
+
+                self.loaded = ()
 
                 logging.info('CREATE : "loaded"')
 
@@ -159,24 +158,6 @@ class Operations:
 
         rows = self.database.execute(
             insert_stmt, data, many=True).rowcount
-
-        return rows
-
-    def insert_sintesi(self):
-        '''
-        Inserisce i dati nella tabella "sintesi" verificando che non siano già
-        stati inseriti in precedenza confrontando la data di inserimento.
-        '''
-        last, = self.database.execute(stmts.LAST_LOAD).fetchone()
-        last = last or datetime(MINYEAR, 1, 1)
-
-        logging.info('INSERT : "sintesi" ...')
-
-        params = (stmts.RGX_DENOMINAZIONE, last)
-        rows = self.database.execute(
-            stmts.INSERT_SINTESI, (params,), many=True).rowcount
-
-        logging.info('INSERT : *** %s rows into sintesi ***', rows)
 
         return rows
 
