@@ -73,7 +73,7 @@ class Operations:
             stmts.GET_TABLE_COLUMNS, (table,)))
 
     @staticmethod
-    def reader(file, refcols):
+    def batched_rows(file, refcols, batch_size):
         '''
         Generatore che ritorna una riga dai file json selezionando solo
         le colonne presenti anche nel database (a volte nei files vengono
@@ -96,16 +96,19 @@ class Operations:
 
             return select
 
-        yield from (json.loads(row, object_hook=fix) for row in file)
+        reader = (json.loads(row, object_hook=fix) for row in file)
 
-    @staticmethod
-    def batched_rows(reader, batch_size):
-        '''
-        Il generatore crea pacchetti di righe da inserire nel db usando
-        il metodo executemany() previsto dal connettore MySQL.
-        '''
         while (batch := tuple(islice(reader, batch_size))):
             yield batch
+
+    # @staticmethod
+    # def batched_rows(reader, batch_size):
+    #    '''
+    #    Il generatore crea pacchetti di righe da inserire nel db usando
+    #    il metodo executemany() previsto dal connettore MySQL.
+    #    '''
+    #    while (batch := tuple(islice(reader, batch_size))):
+    #        yield batch
 
     def create(self, statements, table,
                hash=False, key=True):
@@ -126,14 +129,14 @@ class Operations:
         else:
             self.columns = self.get_columns(table)
 
+            if key:
+                pk_stmt = stmts.ADD_ID.format(table, table)
+                self.database.execute(pk_stmt)
+
             if hash:
                 columns = ','.join(self.columns)
                 hash_stmt = stmts.HASH_KEY.format(table, table, columns)
                 self.database.execute(hash_stmt)
-
-            if key:
-                pk_stmt = stmts.ADD_ID.format(table, table)
-                self.database.execute(pk_stmt)
 
             logging.info('CREATE : "%s"', table)
 
@@ -143,8 +146,7 @@ class Operations:
         '''
         columns = ','.join(self.columns)
 
-        values = [f'%({c})s' for c in self.columns]
-        values = ','.join(values)
+        values = ','.join([f'%({c})s' for c in self.columns])
 
         insert_stmt = stmts.INSERT_TABLES.format(
             table_name, columns, values)
@@ -163,8 +165,7 @@ class Operations:
         logging.info(
             'INSERT : "%s" into "%s" ...', file_name, tab_name)
 
-        reader = self.reader(file, self.columns)
-        batches = self.batched_rows(reader, stmts.BATCH_SIZE)
+        batches = self.batched_rows(file, self.columns, stmts.BATCH_SIZE)
 
         for batch in batches:
             rows += self.insert(tab_name, batch)
