@@ -75,7 +75,8 @@ class Operations:
     @staticmethod
     def batched_rows(file, refcols, batch_size):
         '''
-        Generatore che ritorna una riga dai file json selezionando solo
+        Il generatore crea pacchetti di righe da inserire nel db usando
+        il metodo executemany() previsto dal connettore MySQL. Seleziona solo
         le colonne presenti anche nel database (a volte nei files vengono
         aggiunte delle nuove colonne non presenti nel db o con nomi differenti).
         Inoltre assicura che i campi vuoti siano avvalorati correttamente in
@@ -100,15 +101,6 @@ class Operations:
 
         while (batch := tuple(islice(reader, batch_size))):
             yield batch
-
-    # @staticmethod
-    # def batched_rows(reader, batch_size):
-    #    '''
-    #    Il generatore crea pacchetti di righe da inserire nel db usando
-    #    il metodo executemany() previsto dal connettore MySQL.
-    #    '''
-    #    while (batch := tuple(islice(reader, batch_size))):
-    #        yield batch
 
     def create(self, statements, table,
                hash=False, key=True):
