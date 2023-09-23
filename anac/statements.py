@@ -48,7 +48,7 @@ HASH_KEY = '''ALTER TABLE {} ADD COLUMN {}_hash BINARY(20) AS
 ADD_ID = 'ALTER TABLE {} ADD COLUMN {}_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY'
 
 CREATE_LOADED = '''
-    CREATE TABLE IF NOT EXISTS loaded (
+    CREATE TABLE loaded (
         -- loaded_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         table_name VARCHAR(64) NOT NULL,
         file_name VARCHAR(128) NOT NULL,
@@ -63,7 +63,7 @@ INSERT_LOADED = 'INSERT IGNORE INTO loaded (table_name, file_name) VALUES(%s, %s
 
 CREATE_TABLES = {
     'aggiudicatari': '''
-    CREATE TABLE IF NOT EXISTS aggiudicatari (
+    CREATE TABLE aggiudicatari (
         cig VARCHAR(64) DEFAULT NULL,
         ruolo VARCHAR(64) DEFAULT NULL,
         codice_fiscale VARCHAR(64) DEFAULT NULL,
@@ -76,7 +76,7 @@ CREATE_TABLES = {
         KEY idx_aggiudicatari_data (data_inserimento))''',
 
     'aggiudicazioni': '''
-    CREATE TABLE IF NOT EXISTS aggiudicazioni (
+    CREATE TABLE aggiudicazioni (
         cig VARCHAR(64) DEFAULT NULL,
         data_aggiudicazione_definitiva DATETIME DEFAULT NULL,
         esito VARCHAR(384) DEFAULT NULL,
@@ -101,7 +101,7 @@ CREATE_TABLES = {
         KEY idx_aggiudicazioni_data (data_inserimento))''',
 
     'attestazioni_soa': '''
-    CREATE TABLE IF NOT EXISTS attestazioni_soa (
+    CREATE TABLE attestazioni_soa (
         cf_soa VARCHAR(64) DEFAULT NULL,
         denom_soa VARCHAR(384) DEFAULT NULL,
         num_protocollo_autorizzazione INT DEFAULT NULL,
@@ -129,7 +129,7 @@ CREATE_TABLES = {
         KEY idx_attestazioni_soa_cf_impresa (cf_impresa))''',
 
     'avvio_contratto': '''
-    CREATE TABLE IF NOT EXISTS avvio_contratto (
+    CREATE TABLE avvio_contratto (
         cig VARCHAR(64) DEFAULT NULL,
         data_stipula_contratto DATETIME DEFAULT NULL,
         data_esecutivita_contratto DATETIME DEFAULT NULL,
@@ -145,7 +145,7 @@ CREATE_TABLES = {
         KEY idx_avvio_contratto_id_aggiudicazione (id_aggiudicazione))''',
 
     'cig': '''
-    CREATE TABLE IF NOT EXISTS cig (
+    CREATE TABLE cig (
         cig VARCHAR(64) DEFAULT NULL,
         cig_accordo_quadro VARCHAR(64) DEFAULT NULL,
         numero_gara BIGINT DEFAULT NULL,
@@ -187,7 +187,7 @@ CREATE_TABLES = {
         KEY idx_cig_data (data_inserimento))''',
 
     'smartcig': '''
-    CREATE TABLE IF NOT EXISTS smartcig (
+    CREATE TABLE smartcig (
         cig VARCHAR(64) DEFAULT NULL,
         numero_gara VARCHAR(64) DEFAULT NULL,
         oggetto_gara TEXT DEFAULT NULL,
@@ -218,7 +218,7 @@ CREATE_TABLES = {
         KEY idx_smartcig_cig (cig))''',
 
     'categorie_dpcm_aggregazione': '''
-    CREATE TABLE IF NOT EXISTS categorie_dpcm_aggregazione (
+    CREATE TABLE categorie_dpcm_aggregazione (
         cig VARCHAR(32) DEFAULT NULL,
         cod_categoria_merceologica_dpcm_aggregazione SMALLINT DEFAULT NULL,
         categoria_merceologica_dpcm_aggregazione VARCHAR(384) DEFAULT NULL,
@@ -228,7 +228,7 @@ CREATE_TABLES = {
         KEY idx_categorie_dpcm_aggregazione_cig (cig))''',
 
     'categorie_opera': '''
-    CREATE TABLE IF NOT EXISTS categorie_opera (
+    CREATE TABLE categorie_opera (
         cig VARCHAR(64) DEFAULT NULL,
         id_categoria VARCHAR(64) DEFAULT NULL,
         descrizione VARCHAR(384) DEFAULT NULL,
@@ -239,7 +239,7 @@ CREATE_TABLES = {
         KEY idx_categorie_opera_cig (cig))''',
 
     'centri_di_costo': '''
-    CREATE TABLE IF NOT EXISTS centri_di_costo (
+    CREATE TABLE centri_di_costo (
         id_centro_di_costo VARCHAR(64) DEFAULT NULL,
         denominazione_centro_di_costo VARCHAR(384) DEFAULT NULL,
         codice_ausa VARCHAR(64) DEFAULT NULL,
@@ -259,7 +259,7 @@ CREATE_TABLES = {
         KEY idx_centri_di_costo_id_centro_di_costo (id_centro_di_costo))''',
 
     'collaudo': '''
-    CREATE TABLE IF NOT EXISTS collaudo (
+    CREATE TABLE collaudo (
         cig VARCHAR(64) DEFAULT NULL,
         data_delibera DATETIME DEFAULT NULL,
         data_cert_collaudo DATETIME DEFAULT NULL,
@@ -274,7 +274,7 @@ CREATE_TABLES = {
         KEY idx_collaudo_id_aggiudicazione (id_aggiudicazione))''',
 
     'cpv': '''
-    CREATE TABLE IF NOT EXISTS cpv (
+    CREATE TABLE cpv (
         cod_cpv_ VARCHAR(64) DEFAULT NULL,
         descrizione_cpv_ VARCHAR(384) DEFAULT NULL,
         divisione INT UNSIGNED DEFAULT NULL,
@@ -302,14 +302,14 @@ CREATE_TABLES = {
         KEY idx_cpv_IT_descrizione_sub_sub_sub_categorie (IT_descrizione_sub_sub_sub_categorie))''',
 
     'cup': '''
-    CREATE TABLE IF NOT EXISTS cup (
+    CREATE TABLE cup (
         cig VARCHAR(64) DEFAULT NULL,
         cup VARCHAR(64) DEFAULT NULL,
         data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_cup_cig (cig))''',
 
     'empulia': '''
-    CREATE TABLE IF NOT EXISTS empulia (
+    CREATE TABLE empulia (
         descrizione_breve TEXT DEFAULT NULL,
         cig VARCHAR(64) DEFAULT NULL,
         descrizione_proponente VARCHAR(384) DEFAULT NULL,
@@ -328,7 +328,7 @@ CREATE_TABLES = {
         KEY idx_empulia_cig (cig))''',
 
     'fine_contratto': '''
-    CREATE TABLE IF NOT EXISTS fine_contratto (
+    CREATE TABLE fine_contratto (
         cig VARCHAR(64) DEFAULT NULL,
         cod_motivo_risoluzione TINYINT UNSIGNED DEFAULT NULL,
         motivo_risoluzione VARCHAR(384) DEFAULT NULL,
@@ -343,7 +343,7 @@ CREATE_TABLES = {
         KEY idx_fine_contratto_id_aggiudicazione (id_aggiudicazione))''',
 
     'fonti_finanziamento': '''
-    CREATE TABLE IF NOT EXISTS fonti_finanziamento (
+    CREATE TABLE fonti_finanziamento (
         cig VARCHAR(64) DEFAULT NULL,
         entrate_con_dest_vincolata_pubblica_nazionale_regionale DOUBLE DEFAULT NULL,
         fondi_di_bilancio_dellamministrazione_competente DOUBLE DEFAULT NULL,
@@ -365,7 +365,7 @@ CREATE_TABLES = {
         KEY idx_fonti_finanziamento_id_aggiudicazione (id_aggiudicazione))''',
 
     'lavorazioni': '''
-    CREATE TABLE IF NOT EXISTS lavorazioni (
+    CREATE TABLE lavorazioni (
         cig VARCHAR(64) DEFAULT NULL,
         cod_tipo_lavorazione TINYINT UNSIGNED DEFAULT NULL,
         tipo_lavorazione VARCHAR(64) DEFAULT NULL,
@@ -373,13 +373,13 @@ CREATE_TABLES = {
         KEY idx_lavorazioni_cig (cig))''',
 
     'bandi_cig_modalita_realizzazione':
-    '''CREATE TABLE IF NOT EXISTS bandi_cig_modalita_realizzazione (
+    '''CREATE TABLE bandi_cig_modalita_realizzazione (
         modalita_realizzazione_codice INT DEFAULT NULL,
         modalita_realizzazione_denominazione VARCHAR(384) DEFAULT NULL,
         data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ))''',
 
     'province': '''
-    CREATE TABLE IF NOT EXISTS province (
+    CREATE TABLE province (
         Sigla VARCHAR(64) DEFAULT NULL,
         provincia VARCHAR(64) DEFAULT NULL,
         regione VARCHAR(64) DEFAULT NULL,
@@ -387,7 +387,7 @@ CREATE_TABLES = {
         data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ))''',
 
     'pubblicazioni': '''
-    CREATE TABLE IF NOT EXISTS pubblicazioni (
+    CREATE TABLE pubblicazioni (
         cig VARCHAR(64) DEFAULT NULL,
         data_creazione DATETIME DEFAULT NULL,
         data_albo DATETIME DEFAULT NULL,
@@ -398,7 +398,7 @@ CREATE_TABLES = {
         KEY idx_pubblicazioni_cig (cig))''',
 
     'quadro_economico': '''
-    CREATE TABLE IF NOT EXISTS quadro_economico (
+    CREATE TABLE quadro_economico (
         cig VARCHAR(64) DEFAULT NULL,
         data DATETIME DEFAULT NULL,
         descrizione_evento VARCHAR(64) DEFAULT NULL,
@@ -416,7 +416,7 @@ CREATE_TABLES = {
         KEY idx_quadro_economico_id_aggiudicazione (id_aggiudicazione))''',
 
     'sospensioni': '''
-    CREATE TABLE IF NOT EXISTS sospensioni (
+    CREATE TABLE sospensioni (
         cig VARCHAR(64) DEFAULT NULL,
         data_sospensione DATETIME DEFAULT NULL,
         data_ripresa DATETIME DEFAULT NULL,
@@ -427,7 +427,7 @@ CREATE_TABLES = {
         KEY idx_sospensioni_id_aggiudicazione (id_aggiudicazione))''',
 
     'stati_avanzamento': '''
-    CREATE TABLE IF NOT EXISTS stati_avanzamento (
+    CREATE TABLE stati_avanzamento (
         cig VARCHAR(64) DEFAULT NULL,
         denominazione_sal TEXT DEFAULT NULL,
         flag_ritardo VARCHAR(64) DEFAULT NULL,
@@ -441,7 +441,7 @@ CREATE_TABLES = {
         KEY idx_stati_di_avanzamento_id_aggiudicazione (id_aggiudicazione))''',
 
     'stazioni_appaltanti': '''
-    CREATE TABLE IF NOT EXISTS stazioni_appaltanti (
+    CREATE TABLE stazioni_appaltanti (
         codice_fiscale VARCHAR(64) DEFAULT NULL,
         partita_iva VARCHAR(64) DEFAULT NULL,
         denominazione VARCHAR(384) DEFAULT NULL,
@@ -466,7 +466,7 @@ CREATE_TABLES = {
         KEY idx_stazione_appaltante_provincia_nome (provincia_nome))''',
 
     'subappalti': '''
-    CREATE TABLE IF NOT EXISTS subappalti (
+    CREATE TABLE subappalti (
         id_subappalto VARCHAR(64) DEFAULT NULL,
         cig VARCHAR(64) DEFAULT NULL,
         cf_subappaltante VARCHAR(64) DEFAULT NULL,
@@ -488,13 +488,13 @@ CREATE_TABLES = {
         KEY idx_subappalti_codice_fiscale (codice_fiscale))''',
 
     'bandi_cig_tipo_scelta_contraente': '''
-    CREATE TABLE IF NOT EXISTS bandi_cig_tipo_scelta_contraente (
+    CREATE TABLE bandi_cig_tipo_scelta_contraente (
         tipo_scelta_contraente_codice INT DEFAULT NULL,
         tipo_scelta_contraente_denominazione VARCHAR(384) DEFAULT NULL,
         data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ))''',
 
     'varianti': '''
-    CREATE TABLE IF NOT EXISTS varianti (
+    CREATE TABLE varianti (
         id_variante BIGINT DEFAULT NULL,
         cod_motivo_variante INT DEFAULT NULL,
         motivo_variante VARCHAR(384) DEFAULT NULL,
@@ -506,7 +506,7 @@ CREATE_TABLES = {
         KEY idx_varianti_id_aggiudicazione (id_aggiudicazione))''',
 
     'partecipanti': '''
-    CREATE TABLE IF NOT EXISTS partecipanti (
+    CREATE TABLE partecipanti (
         cig VARCHAR(64) DEFAULT NULL,
         ruolo VARCHAR(64) DEFAULT NULL,
         codice_fiscale VARCHAR(64) DEFAULT NULL,
@@ -516,7 +516,7 @@ CREATE_TABLES = {
         KEY idx_partecipanti (cig))''',
 
     'smartcig_tipo_fattispecie_contrattuale': '''
-    CREATE TABLE IF NOT EXISTS smartcig_tipo_fattispecie_contrattuale (
+    CREATE TABLE smartcig_tipo_fattispecie_contrattuale (
         tipo_fattispecie_contrattuale_id VARCHAR(64) DEFAULT NULL,
         tipo_fattispecie_contrattuale_denominazione VARCHAR(384) DEFAULT NULL,
         data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP )) ''',
@@ -524,7 +524,7 @@ CREATE_TABLES = {
 
 CREATE_SINTESI = {
     'sintesi': '''
-    CREATE TABLE IF NOT EXISTS sintesi (
+    CREATE TABLE sintesi (
         codice_fiscale VARCHAR(32) DEFAULT NULL,
         denominazione VARCHAR(384) DEFAULT NULL,
         ruolo VARCHAR(32) DEFAULT NULL,

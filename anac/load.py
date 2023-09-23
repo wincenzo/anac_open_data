@@ -4,40 +4,34 @@ import logging
 import sys
 from itertools import islice
 
+from mysql import connector
 from mysql.connector import errorcode, errors
-from mysql.connector.pooling import MySQLConnectionPool
 
 from anac import statements as stmts
 
 
 class DataBase:
     def __init__(self, host, database, user, password):
-        self.credentials = {'host': host,
-                            'database': database,
-                            'user': user,
-                            'password': password}
+        self.credentials = {
+            'host': host,
+            'database': database,
+            'user': user,
+            'password': password}
+        self.config = {
+            'pool_name': 'anac',
+            'buffered': True,
+            'autocommit': True}
 
     def execute(self, stmt, params=(), many=False):
-        pool = MySQLConnectionPool(
-            **self.credentials,
-            pool_name='anac',
-            buffered=True,
-            autocommit=True)
+        with connector.connect(**self.credentials, **self.config) as cnx:
 
-        if many:
-            pool.set_config(raise_on_warnings=False)
-            cnx = pool.get_connection()
-            cur = cnx.cursor()
-            cur.executemany(stmt, params)
+            if many:
+                with cnx.cursor() as cur:
+                    cur.executemany(stmt, params)
 
-        else:
-            pool.set_config(raise_on_warnings=True)
-            cnx = pool.get_connection()
-            cur = cnx.cursor(named_tuple=True)
-            cur.execute(stmt, params)
-
-        cur.close()
-        cnx.close()
+            else:
+                with cnx.cursor(named_tuple=True) as cur:
+                    cur.execute(stmt, params)
 
         return cur
 
@@ -45,7 +39,6 @@ class DataBase:
 class Operations:
     def __init__(self, database):
         self.database = database
-
         self.columns = None
 
         try:
@@ -62,7 +55,7 @@ class Operations:
 
             else:
                 logging.exception(err)
-                sys.exit()
+                sys.exit(1)
 
     @property
     def columns(self):
