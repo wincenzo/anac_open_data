@@ -49,11 +49,9 @@ ADD_ID = 'ALTER TABLE {} ADD COLUMN {}_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY
 
 CREATE_LOADED = '''
     CREATE TABLE loaded (
-        -- loaded_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         table_name VARCHAR(64) NOT NULL,
         file_name VARCHAR(128) NOT NULL,
         data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
-        -- KEY idx_loaded_table_name (table_name),
         PRIMARY KEY id_loaded_file (table_name, file_name))'''
 
 
