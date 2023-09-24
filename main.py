@@ -105,6 +105,7 @@ if __name__ == '__main__':
                                                 with zfile.open(file_name) as file:
                                                     rows = ops.load(
                                                         file, table, file_name)
+                                                    
                                                     tot_rows += rows
 
                                     except StopIteration:
