@@ -4,27 +4,25 @@ import logging
 import sys
 from itertools import islice
 
-from mysql import connector
 from mysql.connector import errorcode, errors
+from mysql.connector.pooling import MySQLConnectionPool
 
 from anac import statements as stmts
 
 
 class DataBase:
     def __init__(self, host, database, user, password):
-        self.credentials = {
-            'host': host,
-            'database': database,
-            'user': user,
-            'password': password}
-        self.config = {
-            'pool_name': 'anac',
-            'buffered': True,
-            'autocommit': True}
+        self.pool = MySQLConnectionPool(
+            host=host,
+            database=database,
+            user=user,
+            password=password,
+            pool_name='anac',
+            buffered=True,
+            autocommit=True)
 
     def execute(self, stmt, params=(), many=False):
-        with connector.connect(**self.credentials, **self.config) as cnx:
-
+        with self.pool.get_connection() as cnx:
             if many:
                 with cnx.cursor() as cur:
                     cur.executemany(stmt, params)
@@ -117,18 +115,19 @@ class Operations:
 
             else:
                 logging.exception(err)
+                sys.exit(1)
 
         else:
             self.columns = self.get_columns(table)
-
-            if key:
-                pk_stmt = stmts.ADD_ID.format(table, table)
-                self.database.execute(pk_stmt)
 
             if hash:
                 columns = ','.join(self.columns)
                 hash_stmt = stmts.HASH_KEY.format(table, table, columns)
                 self.database.execute(hash_stmt)
+
+            if key:
+                pk_stmt = stmts.ADD_ID.format(table, table)
+                self.database.execute(pk_stmt)
 
             logging.info('CREATE : "%s"', table)
 
@@ -138,7 +137,8 @@ class Operations:
         '''
         columns = ','.join(self.columns)
 
-        values = ','.join([f'%({c})s' for c in self.columns])
+        values = [f'%({c})s' for c in self.columns]
+        values = ','.join(values)
 
         insert_stmt = stmts.INSERT_TABLES.format(
             table_name, columns, values)
