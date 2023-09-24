@@ -137,8 +137,7 @@ class Operations:
         '''
         columns = ','.join(self.columns)
 
-        values = [f'%({c})s' for c in self.columns]
-        values = ','.join(values)
+        values = ','.join([f'%({c})s' for c in self.columns])
 
         insert_stmt = stmts.INSERT_TABLES.format(
             table_name, columns, values)
