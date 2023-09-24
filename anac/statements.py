@@ -9,7 +9,7 @@ DB_CREDENTIALS = {'host': 'xxx.xxx.xxx.xxx',
                   'user': 'xxx',
                   'password': 'xxx'}
 
-DEFAULT_DOWNLOAD_PATH = 'anac_json/'
+# DEFAULT_DOWNLOAD_PATH = 'anac_json/'
 
 BATCH_SIZE = 75_000
 
