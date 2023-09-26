@@ -4,8 +4,7 @@ import logging
 import sys
 from itertools import islice
 
-from mysql.connector import (
-    errorcode, errors, pooling)
+from mysql.connector import errorcode, errors, pooling
 
 from anac import statements as stmts
 
