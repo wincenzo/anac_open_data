@@ -138,9 +138,10 @@ if __name__ == '__main__':
 
                             logging.info(
                                 'INSERT : *** %s row inserted into "%s" ***', rows, tab)
+
                     else:
                         logging.warning(
-                            '"%s" already loaded', path)
+                            '"%s" already loaded', file_name)
 
         def make_db(ops):
             down_n_load(ops)

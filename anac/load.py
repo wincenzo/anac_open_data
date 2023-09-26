@@ -151,13 +151,12 @@ class Operations:
         '''
         Gestisce l'inserimento dei file ed aggiorna la tabella "loaded".
         '''
-        rows = 0
-
         logging.info(
             'INSERT : "%s" into "%s" ...', file_name, tab_name)
 
         batches = self.batched_rows(file, self.columns, stmts.BATCH_SIZE)
 
+        rows = 0
         for batch in batches:
             rows += self.insert(tab_name, batch)
 
