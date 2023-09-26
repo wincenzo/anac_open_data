@@ -40,7 +40,8 @@ class Operations:
 
         try:
             self.loaded = tuple(
-                row.file_name for row in self.database.execute(stmts.GET_LOADED))
+                row.file_name for row in self.database.execute(
+                    stmts.GET_LOADED))
 
         except errors.Error as err:
             if err.errno == errorcode.ER_NO_SUCH_TABLE:
@@ -136,7 +137,7 @@ class Operations:
         '''
         columns = ','.join(self.columns)
 
-        values = ','.join([f'%({c})s' for c in self.columns])
+        values = ','.join(f'%({c})s' for c in self.columns)
 
         insert_stmt = stmts.INSERT_TABLES.format(
             table_name, columns, values)
