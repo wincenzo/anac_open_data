@@ -4,15 +4,15 @@ import logging
 import sys
 from itertools import islice
 
-from mysql.connector import errorcode, errors
-from mysql.connector.pooling import MySQLConnectionPool
+from mysql.connector import (
+    errorcode, errors, pooling)
 
 from anac import statements as stmts
 
 
 class DataBase:
     def __init__(self, host, database, user, password):
-        self.pool = MySQLConnectionPool(
+        self.pool = pooling.MySQLConnectionPool(
             host=host,
             database=database,
             user=user,
