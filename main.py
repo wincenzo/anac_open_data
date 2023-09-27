@@ -59,6 +59,11 @@ if __name__ == '__main__':
         metavar='NAME',
         help='provide tables name to avoid download and load')
 
+    sintesi = subparsers.add_parser(
+        'sintesi',
+        prog='make_sintesi',
+        help='executes all steps to make the table "sintesi" and create the view "sintesi_cpv"')
+
     args = parser.parse_args()
 
     if args.command == 'load':
@@ -68,10 +73,6 @@ if __name__ == '__main__':
             tabelle e l'inserimento dei file nelle tabelle controllando
             che non siano stati inseriti in precedenza.
             '''
-            for tab in tables:
-                assert tab in stmts.CREATE_TABLES,\
-                    f'table "{tab}" not in database schema'
-
             with RemoteCKAN(stmts.URL_ANAC) as api:
                 packages = api.action.package_list()
                 pckgs_idx = index(packages)
@@ -119,16 +120,13 @@ if __name__ == '__main__':
                         logging.info(
                             'INSERT : *** %s row inserted into "%s" ***', tot_rows, table)
 
-        def user_tables(ops, tables=args.tables):
+        def insert_user_tables(ops, user_tabs={}):
             '''
             Aggiunge le tabelle "cpv" e "province" non disponibili sul
             portale ANAC.
             '''
-            tabs = (('cpv', 'cpv_tree.json'),
-                    ('province', 'province.json'))
-
-            for tab, path in tabs:
-                if not tables or tab in tables:
+            for tab, path in user_tabs.items():
+                if not args.tables or tab in args.tables:
                     ops.create(stmts.CREATE_TABLES, tab, hash=True)
 
                     file_name = os.path.basename(path)
@@ -138,15 +136,20 @@ if __name__ == '__main__':
 
                             logging.info(
                                 'INSERT : *** %s row inserted into "%s" ***', rows, tab)
-
                     else:
                         logging.warning(
                             '"%s" already loaded', file_name)
 
-        def make_db(ops):
+        def make_db(ops, user_tabs={}):
             down_n_load(ops)
-            user_tables(ops)
+            insert_user_tables(ops, user_tabs)
 
             logging.info('*** COMPLETED ***')
 
-        make_db(anac_ops)
+        for tab in args.tables:
+            assert tab in stmts.CREATE_TABLES,\
+                f'table "{tab}" not in database schema'
+
+        user_tabs = stmts.USER_TABS
+
+        make_db(anac_ops, user_tabs=user_tabs)

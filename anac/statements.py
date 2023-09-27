@@ -13,6 +13,8 @@ DB_CREDENTIALS = {'host': 'xxx.xxx.xxx.xxx',
 
 BATCH_SIZE = 75_000
 
+USER_TABS = {'cpv': 'cpv_tree.json', 'province': 'province.json'}
+
 
 # SQL STATEMENTS ############################################################################
 
