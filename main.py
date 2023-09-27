@@ -120,7 +120,7 @@ if __name__ == '__main__':
                         logging.info(
                             'INSERT : *** %s row inserted into "%s" ***', tot_rows, table)
 
-        def insert_user_tables(ops, user_tabs={}):
+        def insert_user_tables(ops, user_tabs=stmts.USER_TABS):
             '''
             Aggiunge le tabelle "cpv" e "province" non disponibili sul
             portale ANAC.
@@ -140,9 +140,9 @@ if __name__ == '__main__':
                         logging.warning(
                             '"%s" already loaded', file_name)
 
-        def make_db(ops, user_tabs={}):
+        def make_db(ops):
             down_n_load(ops)
-            insert_user_tables(ops, user_tabs)
+            insert_user_tables(ops)
 
             logging.info('*** COMPLETED ***')
 
@@ -150,6 +150,4 @@ if __name__ == '__main__':
             assert tab in stmts.CREATE_TABLES,\
                 f'table "{tab}" not in database schema'
 
-        user_tabs = stmts.USER_TABS
-
-        make_db(anac_ops, user_tabs=user_tabs)
+        make_db(anac_ops)
