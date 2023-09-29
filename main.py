@@ -1,7 +1,6 @@
 import argparse
 import logging
 import os
-from collections import defaultdict
 from io import BytesIO
 from urllib.request import urlopen
 from zipfile import ZipFile
@@ -18,16 +17,13 @@ anac_ops = Operations(database=cnx)
 
 def index(pckgs):
     '''
-    Crea un indice dei package in base al nome della tabella.
+    Crea un indice dei packages col nome della tabella associata.
     '''
-    idx = defaultdict(list)
-    for pack in sorted(pckgs, key=len):
+    for pack in sorted(pckgs):
         for tab in sorted(stmts.CREATE_TABLES, reverse=True, key=len):
             if pack.startswith((tab.replace('_', '-'), tab)):
-                idx[tab].append(pack)
-                idx[tab].sort()
+                yield tab, pack
                 break
-    return idx
 
 
 if __name__ == '__main__':
@@ -67,54 +63,54 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.command == 'load':
-        def down_n_load(ops, skip=args.skip, tables=args.tables):
+        def down_load(ops, skip=args.skip, tables=args.tables):
             '''
             Esegue il download dei files in memoria, la creazione delle
             tabelle e l'inserimento dei file nelle tabelle controllando
             che non siano stati inseriti in precedenza.
             '''
-            with RemoteCKAN(stmts.URL_ANAC) as api:
-                packages = api.action.package_list()
-                pckgs_idx = index(packages)
+            with RemoteCKAN(stmts.URL_ANAC) as ckan:
+                packages = ckan.action.package_list()
 
-                tables = set(tables or pckgs_idx) - set(skip)
+                tables = set(tables or stmts.CREATE_TABLES) - set(skip)
 
-                for table in tables:
+                for table, pack in index(packages):
                     tot_rows = 0
 
-                    for pack in pckgs_idx[table]:
-                        results = api.action.package_show(id=pack)
+                    if table not in tables:
+                        continue
 
-                        for res in results['resources']:
-                            format = res['format'] == 'JSON'
-                            mimetype = res['mimetype'] == 'application/zip'
+                    results = ckan.action.package_show(id=pack)
 
-                            if format and mimetype:
-                                url, name = res['url'], res['name']
-                                file_name = f'{name}.json'
+                    for res in results['resources']:
+                        format = res['format'] == 'JSON'
+                        mimetype = res['mimetype'] == 'application/zip'
 
-                                if file_name not in ops.loaded:
-                                    ops.create(stmts.CREATE_TABLES,
-                                               table, hash=True)
+                        if format and mimetype:
+                            url, name = res['url'], res['name']
+                            file_name = f'{name}.json'
 
-                                    try:
-                                        with urlopen(url) as res:
-                                            logging.info(
-                                                'DOWNLOAD : "%s"', file_name)
+                            if file_name in ops.loaded:
+                                logging.warning(
+                                    '"%s" already loaded', file_name)
+                                continue
 
-                                            with ZipFile(BytesIO(res.read())) as zfile:
-                                                with zfile.open(file_name) as file:
-                                                    rows = ops.load(
-                                                        file, table, file_name)
+                            ops.create(stmts.CREATE_TABLES, table, hash=True)
 
-                                                    tot_rows += rows
+                            try:
+                                with urlopen(url) as res:
+                                    logging.info(
+                                        'DOWNLOAD : "%s"', file_name)
 
-                                    except StopIteration:
-                                        continue
+                                    with ZipFile(BytesIO(res.read())) as zfile:
+                                        with zfile.open(file_name) as file:
+                                            rows = ops.load(
+                                                file, table, file_name)
 
-                                else:
-                                    logging.warning(
-                                        '"%s" already loaded', file_name)
+                                tot_rows += rows
+
+                            except StopIteration:
+                                continue
 
                     if tot_rows:
                         logging.info(
@@ -125,29 +121,32 @@ if __name__ == '__main__':
             Aggiunge le tabelle "cpv" e "province" non disponibili sul
             portale ANAC.
             '''
-            for tab, path in user_tabs.items():
-                if not args.tables or tab in args.tables:
-                    ops.create(stmts.CREATE_TABLES, tab, hash=True)
+            for tab, path in user_tabs:
+                if args.tables and tab not in args.tables:
+                    continue
 
-                    file_name = os.path.basename(path)
-                    if file_name not in ops.loaded:
-                        with open(path) as file:
-                            rows = ops.load(file, tab, file_name)
+                file_name = os.path.basename(path)
 
-                            logging.info(
-                                'INSERT : *** %s row inserted into "%s" ***', rows, tab)
-                    else:
-                        logging.warning(
-                            '"%s" already loaded', file_name)
+                if file_name in ops.loaded:
+                    logging.warning(
+                        '"%s" already loaded', file_name)
+                    continue
+
+                ops.create(stmts.CREATE_TABLES, tab, hash=True)
+
+                with open(path) as file:
+                    rows = ops.load(file, tab, file_name)
+
+                logging.info(
+                    'INSERT : *** %s row inserted into "%s" ***', rows, tab)
 
         def make_db(ops):
-            down_n_load(ops)
+            down_load(ops)
             insert_user_tables(ops)
 
             logging.info('*** COMPLETED ***')
 
         for tab in args.tables:
-            assert tab in stmts.CREATE_TABLES,\
-                f'table "{tab}" not in database schema'
+            assert tab in stmts.CREATE_TABLES, f'table "{tab}" not in database schema'
 
         make_db(anac_ops)

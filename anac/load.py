@@ -4,14 +4,15 @@ import logging
 import sys
 from itertools import islice
 
-from mysql.connector import errorcode, errors, pooling
+from mysql.connector import errorcode, errors
+from mysql.connector.pooling import MySQLConnectionPool
 
 from anac import statements as stmts
 
 
 class DataBase:
     def __init__(self, host, database, user, password):
-        self.pool = pooling.MySQLConnectionPool(
+        self.pool = MySQLConnectionPool(
             host=host,
             database=database,
             user=user,
@@ -22,12 +23,12 @@ class DataBase:
 
     def execute(self, stmt, params=(), many=False):
         with self.pool.get_connection() as cnx:
-            if many:
-                with cnx.cursor() as cur:
+            with cnx.cursor(named_tuple=True) as cur:
+
+                if many:
                     cur.executemany(stmt, params)
 
-            else:
-                with cnx.cursor(named_tuple=True) as cur:
+                else:
                     cur.execute(stmt, params)
 
         return cur
@@ -151,10 +152,10 @@ class Operations:
         '''
         Gestisce l'inserimento dei file ed aggiorna la tabella "loaded".
         '''
+        batches = self.batched_rows(file, self.columns, stmts.BATCH_SIZE)
+
         logging.info(
             'INSERT : "%s" into "%s" ...', file_name, tab_name)
-
-        batches = self.batched_rows(file, self.columns, stmts.BATCH_SIZE)
 
         rows = 0
         for batch in batches:
