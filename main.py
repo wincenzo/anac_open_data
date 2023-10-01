@@ -83,34 +83,37 @@ if __name__ == '__main__':
                     results = ckan.action.package_show(id=pack)
 
                     for res in results['resources']:
+
                         format = res['format'] == 'JSON'
                         mimetype = res['mimetype'] == 'application/zip'
+                        if not (format and mimetype):
+                            continue
 
-                        if format and mimetype:
-                            url, name = res['url'], res['name']
-                            file_name = f'{name}.json'
+                        url, name = res['url'], res['name']
+                        file_name = f'{name}.json'
 
-                            if file_name in ops.loaded:
-                                logging.warning(
-                                    '"%s" already loaded', file_name)
-                                continue
+                        if file_name in ops.loaded:
+                            logging.warning(
+                                '"%s" already loaded', file_name)
+                            continue
 
-                            ops.create(stmts.CREATE_TABLES, table, hash=True)
+                        ops.create(stmts.CREATE_TABLES, table, hash=True)
 
-                            try:
-                                with urlopen(url) as res:
-                                    logging.info(
-                                        'DOWNLOAD : "%s"', file_name)
+                        try:
+                            with urlopen(url) as res:
+                                logging.info(
+                                    'DOWNLOAD : "%s" ...', file_name)
 
-                                    with ZipFile(BytesIO(res.read())) as zfile:
-                                        with zfile.open(file_name) as file:
-                                            rows = ops.load(
-                                                file, table, file_name)
+                                with (ZipFile(BytesIO(res.read())) as zfile,
+                                        zfile.open(file_name) as file):
 
-                                tot_rows += rows
+                                    reader = ops.get_rows(file, ops.columns)
+                                    rows = ops.load(reader, table, file.name)
 
-                            except StopIteration:
-                                continue
+                            tot_rows += rows
+
+                        except StopIteration:
+                            continue
 
                     if tot_rows:
                         logging.info(
@@ -132,10 +135,11 @@ if __name__ == '__main__':
                         '"%s" already loaded', file_name)
                     continue
 
-                ops.create(stmts.CREATE_TABLES, tab, hash=True)
+                ops.create(stmts.CREATE_USER_TABLES, tab, hash=True)
 
                 with open(path) as file:
-                    rows = ops.load(file, tab, file_name)
+                    reader = ops.get_rows(file, ops.columns)
+                    rows = ops.load(reader, tab, file.name)
 
                 logging.info(
                     'INSERT : *** %s row inserted into "%s" ***', rows, tab)
@@ -147,6 +151,7 @@ if __name__ == '__main__':
             logging.info('*** COMPLETED ***')
 
         for tab in args.tables:
-            assert tab in stmts.CREATE_TABLES, f'table "{tab}" not in database schema'
+            assert tab in stmts.CREATE_TABLES | stmts.CREATE_USER_TABLES,\
+                f'table "{tab}" not in database schema'
 
         make_db(anac_ops)

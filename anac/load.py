@@ -6,6 +6,7 @@ from itertools import islice
 
 from mysql.connector import errorcode, errors
 from mysql.connector.pooling import MySQLConnectionPool
+from tqdm import tqdm
 
 from anac import statements as stmts
 
@@ -23,15 +24,14 @@ class DataBase:
 
     def execute(self, stmt, params=(), many=False):
         with self.pool.get_connection() as cnx:
-            with cnx.cursor(named_tuple=True) as cur:
+            with cnx.cursor(dictionary=True) as cur:
 
                 if many:
                     cur.executemany(stmt, params)
-
                 else:
                     cur.execute(stmt, params)
 
-        return cur
+                return cur
 
 
 class Operations:
@@ -41,7 +41,7 @@ class Operations:
 
         try:
             self.loaded = tuple(
-                row.file_name for row in self.database.execute(
+                row['file_name'] for row in self.database.execute(
                     stmts.GET_LOADED))
 
         except errors.Error as err:
@@ -68,11 +68,11 @@ class Operations:
         '''
         Ritorna le colonne contenute in una tabella.
         '''
-        return tuple(row.COLUMN_NAME for row in self.database.execute(
+        return tuple(row['COLUMN_NAME'] for row in self.database.execute(
             stmts.GET_TABLE_COLUMNS, (table,)))
 
     @staticmethod
-    def batched_rows(file, refcols, batch_size):
+    def get_rows(file, refcols):
         '''
         Il generatore crea pacchetti di righe da inserire nel db usando
         il metodo executemany() previsto dal connettore MySQL. Seleziona solo
@@ -96,13 +96,14 @@ class Operations:
 
             return select
 
-        reader = (json.loads(row, object_hook=fix) for row in file)
+        return (json.loads(row, object_hook=fix) for row in file)
 
+    @staticmethod
+    def get_batches(reader, batch_size):
         while (batch := tuple(islice(reader, batch_size))):
             yield batch
 
-    def create(self, statements, table,
-               hash=False, key=True):
+    def create(self, statements, table, hash=False, key=True):
         '''
         Crea le tabelle qualora non siano già presenti nel db. Eventualmente
         aggiunge "id" primary key ed "hash" unique key.
@@ -121,6 +122,8 @@ class Operations:
         else:
             self.columns = self.get_columns(table)
 
+            logging.info('CREATE : "%s"', table)
+
             if hash:
                 columns = ','.join(self.columns)
                 hash_stmt = stmts.HASH_KEY.format(table, table, columns)
@@ -130,9 +133,7 @@ class Operations:
                 pk_stmt = stmts.ADD_ID.format(table, table)
                 self.database.execute(pk_stmt)
 
-            logging.info('CREATE : "%s"', table)
-
-    def insert(self, table_name, data):
+    def insert(self, table, data):
         '''
         Esegue l'insert nel db.
         '''
@@ -140,27 +141,26 @@ class Operations:
 
         values = ','.join(f'%({c})s' for c in self.columns)
 
-        insert_stmt = stmts.INSERT_TABLES.format(
-            table_name, columns, values)
+        stmt = stmts.INSERT_TABLES.format(table, columns, values)
 
-        rows = self.database.execute(
-            insert_stmt, data, many=True).rowcount
+        rows = self.database.execute(stmt, data, many=True).rowcount
 
         return rows
 
-    def load(self, file, tab_name, file_name):
+    def load(self, reader, table, name=None):
         '''
         Gestisce l'inserimento dei file ed aggiorna la tabella "loaded".
         '''
-        batches = self.batched_rows(file, self.columns, stmts.BATCH_SIZE)
+        batches = self.get_batches(reader, stmts.BATCH_SIZE)
 
         logging.info(
-            'INSERT : "%s" into "%s" ...', file_name, tab_name)
+            'INSERT : "%s" into "%s" ...', name, table)
 
         rows = 0
-        for batch in batches:
-            rows += self.insert(tab_name, batch)
+        for batch in tqdm(batches, unit=' batch'):
+            rows += self.insert(table, batch)
 
-        self.database.execute(stmts.INSERT_LOADED, (tab_name, file_name))
+        if table in (stmts.CREATE_TABLES | stmts.CREATE_USER_TABLES):
+            self.database.execute(stmts.INSERT_LOADED, (table, name))
 
         return rows

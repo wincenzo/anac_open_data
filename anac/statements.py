@@ -13,7 +13,9 @@ DB_CREDENTIALS = {'host': 'xxx.xxx.xxx.xxx',
 
 BATCH_SIZE = 75_000
 
-USER_TABS = {'cpv': 'cpv_tree.json', 'province': 'province.json'}
+
+# nome della tabella e del file path associato
+USER_TABS = (('cpv', 'cpv_tree.json'), ('province', 'province.json'))
 
 
 # SQL STATEMENTS ############################################################################
@@ -60,6 +62,64 @@ CREATE_LOADED = '''
 GET_LOADED = 'SELECT file_name FROM loaded'
 
 INSERT_LOADED = 'INSERT IGNORE INTO loaded (table_name, file_name) VALUES(%s, %s)'
+
+CREATE_USER_TABLES = {
+    'cpv': '''
+    CREATE TABLE cpv (
+        cod_cpv_ VARCHAR(64) DEFAULT NULL,
+        descrizione_cpv_ VARCHAR(384) DEFAULT NULL,
+        divisione INT UNSIGNED DEFAULT NULL,
+        gruppo INT UNSIGNED DEFAULT NULL,
+        classe INT UNSIGNED DEFAULT NULL,
+        categoria INT UNSIGNED DEFAULT NULL,
+        sub_categ INT UNSIGNED DEFAULT NULL,
+        sub_sub_categ INT UNSIGNED DEFAULT NULL,
+        sub_sub_sub_categ INT UNSIGNED DEFAULT NULL,
+        IT_descrizione_divisione VARCHAR(384) DEFAULT NULL,
+        IT_descrizione_gruppo VARCHAR(384) DEFAULT NULL,
+        IT_descrizione_classe VARCHAR(384) DEFAULT NULL,
+        IT_descrizione_categorie VARCHAR(384) DEFAULT NULL,
+        IT_descrizione_sub_categorie VARCHAR(384) DEFAULT NULL,
+        IT_descrizione_sub_sub_categorie VARCHAR(384) DEFAULT NULL,
+        IT_descrizione_sub_sub_sub_categorie VARCHAR(384) DEFAULT NULL,
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
+        KEY idx_cpv_cod_cpv_ (cod_cpv_),
+        KEY idx_cpv_IT_descrizione_divisione (IT_descrizione_divisione),
+        KEY idx_cpv_IT_descrizione_gruppo (IT_descrizione_gruppo),
+        KEY idx_cpv_IT_descrizione_classe (IT_descrizione_classe),
+        KEY idx_cpv_IT_descrizione_categorie (IT_descrizione_categorie),
+        KEY idx_cpv_IT_descrizione_sub_categorie (IT_descrizione_sub_categorie),
+        KEY idx_cpv_IT_descrizione_sub_sub_categorie (IT_descrizione_sub_sub_categorie),
+        KEY idx_cpv_IT_descrizione_sub_sub_sub_categorie (IT_descrizione_sub_sub_sub_categorie))''',
+
+    'province': '''
+    CREATE TABLE province (
+        Sigla VARCHAR(64) DEFAULT NULL,
+        provincia VARCHAR(64) DEFAULT NULL,
+        regione VARCHAR(64) DEFAULT NULL,
+        provincia_codice VARCHAR(64) DEFAULT NULL,
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ))''',
+
+    'empulia': '''
+    CREATE TABLE empulia (
+        descrizione_breve TEXT DEFAULT NULL,
+        cig VARCHAR(64) DEFAULT NULL,
+        descrizione_proponente VARCHAR(384) DEFAULT NULL,
+        incaricato VARCHAR(64) DEFAULT NULL,
+        importo_appalto DOUBLE DEFAULT NULL,
+        importo_base_asta DOUBLE DEFAULT NULL,
+        criterio_aggiudicazione VARCHAR(64) DEFAULT NULL,
+        tipo_appalto VARCHAR(64) DEFAULT NULL,
+        termine_richiesta_quesiti VARCHAR(384) DEFAULT NULL,
+        termine_richiesta_presentazione_offerte VARCHAR(384) DEFAULT NULL,
+        data_seduta DATETIME DEFAULT NULL,
+        note TEXT,
+        list_of_file json DEFAULT NULL,
+        expired TINYINT UNSIGNED DEFAULT NULL,
+        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
+        KEY idx_empulia_cig (cig))''',
+
+}
 
 CREATE_TABLES = {
     'aggiudicatari': '''
@@ -273,59 +333,12 @@ CREATE_TABLES = {
         KEY idx_collaudo_cig (cig),
         KEY idx_collaudo_id_aggiudicazione (id_aggiudicazione))''',
 
-    'cpv': '''
-    CREATE TABLE cpv (
-        cod_cpv_ VARCHAR(64) DEFAULT NULL,
-        descrizione_cpv_ VARCHAR(384) DEFAULT NULL,
-        divisione INT UNSIGNED DEFAULT NULL,
-        gruppo INT UNSIGNED DEFAULT NULL,
-        classe INT UNSIGNED DEFAULT NULL,
-        categoria INT UNSIGNED DEFAULT NULL,
-        sub_categ INT UNSIGNED DEFAULT NULL,
-        sub_sub_categ INT UNSIGNED DEFAULT NULL,
-        sub_sub_sub_categ INT UNSIGNED DEFAULT NULL,
-        IT_descrizione_divisione VARCHAR(384) DEFAULT NULL,
-        IT_descrizione_gruppo VARCHAR(384) DEFAULT NULL,
-        IT_descrizione_classe VARCHAR(384) DEFAULT NULL,
-        IT_descrizione_categorie VARCHAR(384) DEFAULT NULL,
-        IT_descrizione_sub_categorie VARCHAR(384) DEFAULT NULL,
-        IT_descrizione_sub_sub_categorie VARCHAR(384) DEFAULT NULL,
-        IT_descrizione_sub_sub_sub_categorie VARCHAR(384) DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
-        KEY idx_cpv_cod_cpv_ (cod_cpv_),
-        KEY idx_cpv_IT_descrizione_divisione (IT_descrizione_divisione),
-        KEY idx_cpv_IT_descrizione_gruppo (IT_descrizione_gruppo),
-        KEY idx_cpv_IT_descrizione_classe (IT_descrizione_classe),
-        KEY idx_cpv_IT_descrizione_categorie (IT_descrizione_categorie),
-        KEY idx_cpv_IT_descrizione_sub_categorie (IT_descrizione_sub_categorie),
-        KEY idx_cpv_IT_descrizione_sub_sub_categorie (IT_descrizione_sub_sub_categorie),
-        KEY idx_cpv_IT_descrizione_sub_sub_sub_categorie (IT_descrizione_sub_sub_sub_categorie))''',
-
     'cup': '''
     CREATE TABLE cup (
         cig VARCHAR(64) DEFAULT NULL,
         cup VARCHAR(64) DEFAULT NULL,
         data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
         KEY idx_cup_cig (cig))''',
-
-    'empulia': '''
-    CREATE TABLE empulia (
-        descrizione_breve TEXT DEFAULT NULL,
-        cig VARCHAR(64) DEFAULT NULL,
-        descrizione_proponente VARCHAR(384) DEFAULT NULL,
-        incaricato VARCHAR(64) DEFAULT NULL,
-        importo_appalto DOUBLE DEFAULT NULL,
-        importo_base_asta DOUBLE DEFAULT NULL,
-        criterio_aggiudicazione VARCHAR(64) DEFAULT NULL,
-        tipo_appalto VARCHAR(64) DEFAULT NULL,
-        termine_richiesta_quesiti VARCHAR(384) DEFAULT NULL,
-        termine_richiesta_presentazione_offerte VARCHAR(384) DEFAULT NULL,
-        data_seduta DATETIME DEFAULT NULL,
-        note TEXT,
-        list_of_file json DEFAULT NULL,
-        expired TINYINT UNSIGNED DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
-        KEY idx_empulia_cig (cig))''',
 
     'fine_contratto': '''
     CREATE TABLE fine_contratto (
@@ -376,14 +389,6 @@ CREATE_TABLES = {
     '''CREATE TABLE bandi_cig_modalita_realizzazione (
         modalita_realizzazione_codice INT DEFAULT NULL,
         modalita_realizzazione_denominazione VARCHAR(384) DEFAULT NULL,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ))''',
-
-    'province': '''
-    CREATE TABLE province (
-        Sigla VARCHAR(64) DEFAULT NULL,
-        provincia VARCHAR(64) DEFAULT NULL,
-        regione VARCHAR(64) DEFAULT NULL,
-        provincia_codice VARCHAR(64) DEFAULT NULL,
         data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ))''',
 
     'pubblicazioni': '''
@@ -520,300 +525,4 @@ CREATE_TABLES = {
         tipo_fattispecie_contrattuale_id VARCHAR(64) DEFAULT NULL,
         tipo_fattispecie_contrattuale_denominazione VARCHAR(384) DEFAULT NULL,
         data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP )) ''',
-}
-
-CREATE_SINTESI = {
-    'sintesi': '''
-    CREATE TABLE sintesi (
-        codice_fiscale VARCHAR(32) DEFAULT NULL,
-        denominazione VARCHAR(384) DEFAULT NULL,
-        ruolo VARCHAR(32) DEFAULT NULL,
-        tipo_soggetto VARCHAR(256) DEFAULT NULL,
-        importo_aggiudicazione DOUBLE DEFAULT NULL,
-        importo_lotto DOUBLE DEFAULT NULL,
-        data_aggiudicazione_definitiva DATETIME DEFAULT NULL,
-        criterio_aggiudicazione VARCHAR(128) DEFAULT NULL,
-        massimo_ribasso FLOAT DEFAULT NULL,
-        minimo_ribasso FLOAT DEFAULT NULL,
-        numero_offerte_ammesse INT DEFAULT NULL,
-        numero_offerte_escluse INT DEFAULT NULL,
-        num_imprese_offerenti INT DEFAULT NULL,
-        cig VARCHAR(32) DEFAULT NULL,
-        cod_cpv VARCHAR(32) DEFAULT NULL,
-        descrizione_cpv VARCHAR(384) DEFAULT NULL,
-        oggetto_lotto TEXT DEFAULT NULL,
-        oggetto_gara TEXT DEFAULT NULL,
-        tipo_scelta_contraente VARCHAR(128) DEFAULT NULL,
-        oggetto_principale_contratto VARCHAR(16) DEFAULT NULL,
-        modalita_realizzazione VARCHAR(128) DEFAULT NULL,
-        regione VARCHAR(32) DEFAULT NULL,
-        provincia VARCHAR(64) DEFAULT NULL,
-        stazione_appaltante VARCHAR(256) DEFAULT NULL,
-        cf_stazione_appaltante VARCHAR(32) DEFAULT NULL,
-        provincia_codice VARCHAR(8) DEFAULT NULL,
-        numero_gara BIGINT UNSIGNED DEFAULT NULL,
-        anno INT UNSIGNED AS (YEAR(data_aggiudicazione_definitiva)) STORED,
-        flag_subappalto TINYINT UNSIGNED DEFAULT NULL,
-        flag_cons TINYINT UNSIGNED AS (CASE
-            WHEN tipo_soggetto LIKE 'consorzio%' THEN 1
-            WHEN tipo_soggetto LIKE 'ati%'THEN 1
-            ELSE 0
-            END) STORED,
-        data_inserimento DATETIME DEFAULT (CURRENT_TIMESTAMP ),
-        KEY idx_sintesi_data_inserimento (data_inserimento),
-        KEY idx_sintesi_cod_cpv_provincia_anno (cod_cpv,provincia,anno),
-        KEY idx_sintesi_regione_codice_fiscale (regione,codice_fiscale),
-        KEY idx_sintesi_provincia_codice_fiscale (provincia,codice_fiscale),
-        KEY idx_sintesi_denominazione_codice_fiscale (denominazione,codice_fiscale),
-        KEY idx_sintesi_stazione_appaltante_codice_fiscale (stazione_appaltante,codice_fiscale),
-        KEY idx_sintesi_descrizione_cpv_codice_fiscale (descrizione_cpv,codice_fiscale),
-        KEY idx_sintesi_ruolo_codice_fiscale (ruolo,codice_fiscale),
-        KEY idx_sintesi_codice_fiscale (codice_fiscale),
-        KEY idx_sintesi_codFisc_descrizioneCPV (codice_fiscale,descrizione_cpv),
-        KEY idx_sintesi_regione_descrizioneCPV (regione,descrizione_cpv),
-        KEY idx_sintesi_data_aggiudicazione_definitiva (data_aggiudicazione_definitiva),
-        KEY idx_sintesi_data_aggiudicazione_definitiva_denominazione (data_aggiudicazione_definitiva,denominazione),
-        KEY idx_sintesi_codice_fiscale_criterio_aggiudicazione (codice_fiscale,criterio_aggiudicazione))'''
-}
-
-LAST_LOAD = 'SELECT MAX(data_inserimento) AS last_ins FROM sintesi'
-
-RGX_DENOMINAZIONE = r"\\.|\\?|\\'|\\|&#\\d+;|&\\w+;|^&|^,|,$|^\\.|\\*"
-
-# INSERT_SINTESI = '''
-#    INSERT IGNORE INTO sintesi (codice_fiscale,
-#        denominazione,
-#        ruolo,
-#        tipo_soggetto,
-#        importo_aggiudicazione,
-#        importo_lotto,
-#        data_aggiudicazione_definitiva,
-#        criterio_aggiudicazione,
-#        massimo_ribasso,
-#        minimo_ribasso,
-#        numero_offerte_ammesse,
-#        numero_offerte_escluse,
-#        num_imprese_offerenti,
-#        cig,
-#        cod_cpv,
-#        descrizione_cpv,
-#        oggetto_lotto,
-#        oggetto_gara,
-#        tipo_scelta_contraente,
-#        oggetto_principale_contratto,
-#        modalita_realizzazione,
-#        regione,
-#        provincia,
-#        stazione_appaltante,
-#        cf_stazione_appaltante,
-#        provincia_codice,
-#        numero_gara,
-#        flag_subappalto)
-#    WITH
-#        ag AS (
-#            SELECT
-#                codice_fiscale,
-#                denominazione,
-#                ruolo,
-#                tipo_soggetto,
-#                id_aggiudicazione
-#            FROM aggiudicatari
-#            WHERE data_inserimento > %s),
-#        a AS (
-#            SELECT
-#                cig,
-#                importo_aggiudicazione,
-#                data_aggiudicazione_definitiva,
-#                criterio_aggiudicazione,
-#                massimo_ribasso,
-#                minimo_ribasso,
-#                numero_offerte_ammesse,
-#                numero_offerte_escluse,
-#                num_imprese_offerenti,
-#                flag_subappalto,
-#                id_aggiudicazione
-#            FROM aggiudicazioni
-#            WHERE data_inserimento > %s),
-#        c AS (
-#            SELECT
-#                importo_lotto,
-#                cig,
-#                cod_cpv,
-#                descrizione_cpv,
-#                oggetto_lotto,
-#                oggetto_gara,
-#                tipo_scelta_contraente,
-#                oggetto_principale_contratto,
-#                modalita_realizzazione,
-#                numero_gara,
-#                cf_amministrazione_appaltante
-#            FROM cig
-#            WHERE data_inserimento > %s)
-#    SELECT
-#        ag.codice_fiscale,
-#        TRIM(regexp_replace(ag.denominazione, %s, "")) AS denominazione,
-#        ag.ruolo,
-#        ag.tipo_soggetto,
-#        a.importo_aggiudicazione,
-#        c.importo_lotto,
-#        a.data_aggiudicazione_definitiva,
-#        a.criterio_aggiudicazione,
-#        a.massimo_ribasso,
-#        a.minimo_ribasso,
-#        a.numero_offerte_ammesse,
-#        a.numero_offerte_escluse,
-#        a.num_imprese_offerenti,
-#        c.cig,
-#        c.cod_cpv,
-#        TRIM(TRAILING '.' FROM c.descrizione_cpv) AS descrizione_cpv,
-#        c.oggetto_lotto,
-#        c.oggetto_gara,
-#        c.tipo_scelta_contraente,
-#        c.oggetto_principale_contratto,
-#        c.modalita_realizzazione,
-#        pr.regione,
-#        pr.provincia,
-#        sa.denominazione AS stazione_appaltante,
-#        sa.codice_fiscale AS cf_stazione_appaltante,
-#        sa.provincia_codice,
-#        c.numero_gara,
-#        a.flag_subappalto
-#    FROM
-#        ag
-#    JOIN
-#        a ON a.id_aggiudicazione = ag.id_aggiudicazione
-#        AND a.data_inserimento > %s
-#    JOIN
-#        c ON c.cig = a.cig
-#    JOIN
-#        stazioni_appaltanti sa ON sa.codice_fiscale = c.cf_amministrazione_appaltante
-#    JOIN
-#        province pr ON sa.provincia_codice = pr.provincia_codice
-#    '''
-
-INSERT_SINTESI = '''
-    INSERT IGNORE INTO sintesi (codice_fiscale,
-        denominazione,
-        ruolo,
-        tipo_soggetto,
-        importo_aggiudicazione,
-        importo_lotto,
-        data_aggiudicazione_definitiva,
-        criterio_aggiudicazione,
-        massimo_ribasso,
-        minimo_ribasso,
-        numero_offerte_ammesse,
-        numero_offerte_escluse,
-        num_imprese_offerenti,
-        cig,
-        cod_cpv,
-        descrizione_cpv,
-        oggetto_lotto,
-        oggetto_gara,
-        tipo_scelta_contraente,
-        oggetto_principale_contratto,
-        modalita_realizzazione,
-        regione,
-        provincia,
-        stazione_appaltante,
-        cf_stazione_appaltante,
-        provincia_codice,
-        numero_gara,
-        flag_subappalto)
-    SELECT
-        ag.codice_fiscale,
-        TRIM(regexp_replace(ag.denominazione, %s, "")) AS denominazione,
-        ag.ruolo,
-        ag.tipo_soggetto,
-        a.importo_aggiudicazione,
-        c.importo_lotto,
-        a.data_aggiudicazione_definitiva,
-        a.criterio_aggiudicazione,
-        a.massimo_ribasso,
-        a.minimo_ribasso,
-        a.numero_offerte_ammesse,
-        a.numero_offerte_escluse,
-        a.num_imprese_offerenti,
-        c.cig,
-        c.cod_cpv,
-        TRIM(TRAILING '.' FROM c.descrizione_cpv) AS descrizione_cpv,
-        c.oggetto_lotto,
-        c.oggetto_gara,
-        c.tipo_scelta_contraente,
-        c.oggetto_principale_contratto,
-        c.modalita_realizzazione,
-        pr.regione,
-        pr.provincia,
-        sa.denominazione AS stazione_appaltante,
-        sa.codice_fiscale AS cf_stazione_appaltante,
-        sa.provincia_codice,
-        c.numero_gara,
-        a.flag_subappalto
-    FROM
-        aggiudicatari ag
-    JOIN
-        aggiudicazioni a ON
-        a.id_aggiudicazione = ag.id_aggiudicazione AND
-        a.data_inserimento > %s
-    JOIN
-        cig c ON c.cig = a.cig
-    JOIN
-        stazioni_appaltanti sa ON sa.codice_fiscale = c.cf_amministrazione_appaltante
-    JOIN
-        province pr ON sa.provincia_codice = pr.provincia_codice'''
-
-
-CREATEVIEW_SINTESI_CPV = {
-    'sintesi_cpv': '''
-    CREATE OR REPLACE VIEW siap_test.sintesi_cpv AS
-        SELECT
-            s.codice_fiscale,
-            s.denominazione,
-            s.ruolo,
-            s.tipo_soggetto,
-            s.importo_aggiudicazione,
-            s.importo_lotto,
-            s.data_aggiudicazione_definitiva,
-            s.criterio_aggiudicazione,
-            s.massimo_ribasso,
-            s.minimo_ribasso,
-            s.numero_offerte_ammesse,
-            s.numero_offerte_escluse,
-            s.num_imprese_offerenti,
-            s.cig,
-            s.cod_cpv,
-            s.descrizione_cpv,
-            s.oggetto_lotto,
-            s.oggetto_gara,
-            s.tipo_scelta_contraente,
-            s.oggetto_principale_contratto,
-            s.modalita_realizzazione,
-            s.regione,
-            s.provincia,
-            s.stazione_appaltante,
-            s.cf_stazione_appaltante,
-            s.provincia_codice,
-            s.numero_gara,
-            s.anno,
-            s.flag_subappalto,
-            s.flag_cons,
-            c.divisione,
-            c.gruppo,
-            c.classe,
-            c.categoria,
-            c.sub_categ,
-            c.sub_sub_categ,
-            c.sub_sub_sub_categ,
-            c.IT_descrizione_divisione,
-            c.IT_descrizione_gruppo,
-            c.IT_descrizione_classe,
-            c.IT_descrizione_categorie,
-            c.IT_descrizione_sub_categorie,
-            c.IT_descrizione_sub_sub_categorie,
-            c.IT_descrizione_sub_sub_sub_categorie
-        FROM
-            sintesi s
-        JOIN cpv c
-            ON s.cod_cpv = c.cod_cpv_
-        WITH CHECK OPTION'''
 }

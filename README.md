@@ -30,10 +30,4 @@ Per scaricare senza omissioni aggiungere l'opzione senza argomenti.
 
 ```-t --tables <NAME> ...``` permette di scaricare ed inserire i file relativi ad una o più tabelle indicate
 
-# Definizione dell tabella di sintesi
-
-```python main.py sintesi```
-
-esegue tutte le operazioni necessaria alla creazione e inserimento dei dati nella tabella "sintesi"
-
 
