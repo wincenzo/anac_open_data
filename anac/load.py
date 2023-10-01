@@ -160,7 +160,7 @@ class Operations:
         for batch in tqdm(batches, unit=' batch'):
             rows += self.insert(table, batch)
 
-        if table in (stmts.CREATE_TABLES | stmts.CREATE_USER_TABLES):
+        if table in stmts.CREATE_TABLES | stmts.CREATE_USER_TABLES:
             self.database.execute(stmts.INSERT_LOADED, (table, name))
 
         return rows
