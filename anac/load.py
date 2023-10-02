@@ -142,25 +142,24 @@ class Operations:
         values = ','.join(f'%({c})s' for c in self.columns)
 
         stmt = stmts.INSERT_TABLES.format(table, columns, values)
-
         rows = self.database.execute(stmt, data, many=True).rowcount
 
         return rows
 
-    def load(self, reader, table, name=None):
+    def load(self, reader, table, name=''):
         '''
         Gestisce l'inserimento dei file ed aggiorna la tabella "loaded".
         '''
         batches = self.get_batches(reader, stmts.BATCH_SIZE)
 
-        logging.info(
-            'INSERT : "%s" into "%s" ...', name, table)
+        name = name and '"' + name + '"'
+
+        logging.info('INSERT : %s into "%s" ...', name, table)
 
         rows = 0
         for batch in tqdm(batches, unit=' batch'):
             rows += self.insert(table, batch)
 
-        if table in stmts.CREATE_TABLES | stmts.CREATE_USER_TABLES:
-            self.database.execute(stmts.INSERT_LOADED, (table, name))
+        self.database.execute(stmts.INSERT_LOADED, (table, name))
 
         return rows
