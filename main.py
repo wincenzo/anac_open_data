@@ -89,12 +89,11 @@ if __name__ == '__main__':
                         if not (format and mimetype):
                             continue
 
-                        url, name = res['url'], res['name']
-                        file_name = f'{name}.json'
+                        url, name = res['url'], f'{res["name"]}.json'
 
-                        if file_name in ops.loaded:
+                        if name in ops.loaded:
                             logging.warning(
-                                '"%s" already loaded', file_name)
+                                '"%s" already loaded', name)
                             continue
 
                         ops.create(stmts.CREATE_TABLES, table, hash=True)
@@ -102,10 +101,10 @@ if __name__ == '__main__':
                         try:
                             with urlopen(url) as res:
                                 logging.info(
-                                    'DOWNLOAD : "%s" ...', file_name)
+                                    'DOWNLOAD : "%s" ...', name)
 
                                 with (ZipFile(BytesIO(res.read())) as zfile,
-                                        zfile.open(file_name) as file):
+                                        zfile.open(name) as file):
 
                                     reader = ops.get_rows(file, ops.columns)
                                     rows = ops.load(reader, table, file.name)
@@ -128,11 +127,10 @@ if __name__ == '__main__':
                 if args.tables and tab not in args.tables:
                     continue
 
-                file_name = os.path.basename(path)
+                name = os.path.basename(path)
 
-                if file_name in ops.loaded:
-                    logging.warning(
-                        '"%s" already loaded', file_name)
+                if name in ops.loaded:
+                    logging.warning('"%s" already loaded', name)
                     continue
 
                 ops.create(stmts.CREATE_USER_TABLES, tab, hash=True)
