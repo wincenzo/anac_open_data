@@ -152,7 +152,7 @@ class Operations:
         '''
         batches = self.get_batches(reader, stmts.BATCH_SIZE)
 
-        name = name and '"' + name + '"'
+        name = name and ('"' + name + '"')
 
         logging.info('INSERT : %s into "%s" ...', name, table)
 
@@ -160,6 +160,6 @@ class Operations:
         for batch in tqdm(batches, unit=' batch'):
             rows += self.insert(table, batch)
 
-        self.database.execute(stmts.INSERT_LOADED, (table, name))
+        self.database.execute(stmts.INSERT_LOADED, (table, name or None))
 
         return rows
