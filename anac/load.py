@@ -1,4 +1,3 @@
-
 import json
 import logging
 import sys
@@ -30,7 +29,7 @@ class DataBase:
                 else:
                     cur.execute(stmt, params)
 
-                return cur
+        return cur
 
 
 class Operations:

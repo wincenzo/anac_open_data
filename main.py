@@ -1,6 +1,5 @@
 import argparse
 import logging
-import os
 from io import BytesIO
 from urllib.request import urlopen
 from zipfile import ZipFile
@@ -83,18 +82,16 @@ def insert_user_tables(ops, tables, user_tabs=stmts.USER_TABS):
     portale ANAC.
     '''
     for tab, path in user_tabs:
-        if tables and tab not in tables:
+        if tab not in tables:
             continue
-
-        name = os.path.basename(path)
-
-        if name in ops.loaded:
-            logging.warning('"%s" already loaded', name)
-            continue
-
-        ops.create(stmts.CREATE_USER_TABLES, tab, hash=True)
 
         with open(path) as file:
+            if file.name in ops.loaded:
+                logging.warning('"%s" already loaded', file.name)
+                continue
+
+            ops.create(stmts.CREATE_USER_TABLES, tab, hash=True)
+
             reader = ops.get_rows(file, ops.columns)
             rows = ops.load(reader, tab, file.name)
 
@@ -128,13 +125,13 @@ if __name__ == '__main__':
 
     def main(args):
         if args.command == 'load':
-            for tab in args.tables:
-                schema = stmts.CREATE_TABLES | stmts.CREATE_USER_TABLES
+            schema = stmts.CREATE_TABLES | stmts.CREATE_USER_TABLES
 
+            for tab in args.tables:
                 if tab not in schema:
                     raise ValueError(f'table "{tab}" not in database schema')
 
-            tables = set(args.tables or stmts.CREATE_TABLES) - set(args.skip)
+            tables = set(args.tables or schema) - set(args.skip)
 
             download_and_load(anac_ops, tables)
             insert_user_tables(anac_ops, tables)
