@@ -26,130 +26,120 @@ def index(pckgs):
                 break
 
 
+def download_and_load(ops, tables):
+    '''
+    Esegue il download dei files in memoria, la creazione delle
+    tabelle e l'inserimento dei file nelle tabelle, a meno che
+    non siano stati inseriti in precedenza.
+    '''
+    with RemoteCKAN(stmts.URL_ANAC) as ckan:
+        packages = ckan.action.package_list()
+
+        for table, pack in index(packages):
+            tot_rows = 0
+
+            if table not in tables:
+                continue
+
+            results = ckan.action.package_show(id=pack)
+
+            for res in results['resources']:
+
+                format = res['format'] == 'JSON'
+                mimetype = res['mimetype'] == 'application/zip'
+                if not (format and mimetype):
+                    continue
+
+                url, name = res['url'], f'{res["name"]}.json'
+
+                if name in ops.loaded:
+                    logging.warning(
+                        '"%s" already loaded', name)
+                    continue
+
+                ops.create(stmts.CREATE_TABLES, table, hash=True)
+
+                try:
+                    with urlopen(url) as res:
+                        logging.info('DOWNLOAD : "%s" ...', name)
+
+                        with (ZipFile(BytesIO(res.read())) as zfile,
+                                zfile.open(name) as file):
+                            reader = ops.get_rows(file, ops.columns)
+                            rows = ops.load(reader, table, file.name)
+
+                    tot_rows += rows
+
+                except StopIteration:
+                    continue
+
+            if tot_rows:
+                logging.info(
+                    'INSERT : *** %s row inserted into "%s" ***', tot_rows, table)
+
+
+def insert_user_tables(ops, tables, user_tabs=stmts.USER_TABS):
+    '''
+    Aggiunge le tabelle "cpv" e "province" non disponibili sul
+    portale ANAC.
+    '''
+    for tab, path in user_tabs:
+        if tables and tab not in tables:
+            continue
+
+        name = os.path.basename(path)
+
+        if name in ops.loaded:
+            logging.warning('"%s" already loaded', name)
+            continue
+
+        ops.create(stmts.CREATE_USER_TABLES, tab, hash=True)
+
+        with open(path) as file:
+            reader = ops.get_rows(file, ops.columns)
+            rows = ops.load(reader, tab, file.name)
+
+        logging.info(
+            'INSERT : *** %s row inserted into "%s" ***', rows, tab)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='main')
 
     subparsers = parser.add_subparsers(
-        title='subcommands',
-        dest='command',
-        required=True)
+        title='subcommands', dest='command', required=True)
 
     dw_ld = subparsers.add_parser(
-        'load',
-        prog='make_db',
-        help='executes all steps for db creation: download files-create tables-insert data')
+        'load', prog='make_db',
+        description='executes all steps for db creation: download files-create tables-insert data')
 
     dw_ld.add_argument(
-        '-t', '--tables',
-        nargs='*',
-        default=[],
-        type=str,
-        metavar='NAME',
-        help='provide tables name to insert into db; if missing insert all tables')
+        '-t', '--tables', nargs='*', default=[], type=str, metavar='NAME',
+        help='provide tables name to insert into db')
 
     dw_ld.add_argument(
-        '-s', '--skip',
-        nargs='*',
-        default=['smartcig'],
-        type=str,
-        metavar='NAME',
-        help='provide tables name to avoid download and load')
+        '-s', '--skip', nargs='*', default=['smartcig'], type=str, metavar='NAME',
+        help='provide tables name to avoid, default value: "smartcic". If called without values no tables are skipped')
 
     sintesi = subparsers.add_parser(
-        'sintesi',
-        prog='make_sintesi',
-        help='executes all steps to make the table "sintesi" and create the view "sintesi_cpv"')
+        'sintesi', prog='make_sintesi',
+        description='executes all steps to make the table "sintesi" and create the view "sintesi_cpv"')
 
     args = parser.parse_args()
 
-    if args.command == 'load':
-        def down_load(ops, skip=args.skip, tables=args.tables):
-            '''
-            Esegue il download dei files in memoria, la creazione delle
-            tabelle e l'inserimento dei file nelle tabelle controllando
-            che non siano stati inseriti in precedenza.
-            '''
-            with RemoteCKAN(stmts.URL_ANAC) as ckan:
-                packages = ckan.action.package_list()
+    def main(args):
+        if args.command == 'load':
+            for tab in args.tables:
+                schema = stmts.CREATE_TABLES | stmts.CREATE_USER_TABLES
 
-                tables = set(tables or stmts.CREATE_TABLES) - set(skip)
+                if tab not in schema:
+                    raise ValueError(f'table "{tab}" not in database schema')
 
-                for table, pack in index(packages):
-                    tot_rows = 0
+            tables = set(args.tables or stmts.CREATE_TABLES) - set(args.skip)
 
-                    if table not in tables:
-                        continue
+            download_and_load(anac_ops, tables)
+            insert_user_tables(anac_ops, tables)
 
-                    results = ckan.action.package_show(id=pack)
+        logging.info('*** COMPLETED ***')
 
-                    for res in results['resources']:
-
-                        format = res['format'] == 'JSON'
-                        mimetype = res['mimetype'] == 'application/zip'
-                        if not (format and mimetype):
-                            continue
-
-                        url, name = res['url'], f'{res["name"]}.json'
-
-                        if name in ops.loaded:
-                            logging.warning(
-                                '"%s" already loaded', name)
-                            continue
-
-                        ops.create(stmts.CREATE_TABLES, table, hash=True)
-
-                        try:
-                            with urlopen(url) as res:
-                                logging.info(
-                                    'DOWNLOAD : "%s" ...', name)
-
-                                with (ZipFile(BytesIO(res.read())) as zfile,
-                                        zfile.open(name) as file):
-
-                                    reader = ops.get_rows(file, ops.columns)
-                                    rows = ops.load(reader, table, file.name)
-
-                            tot_rows += rows
-
-                        except StopIteration:
-                            continue
-
-                    if tot_rows:
-                        logging.info(
-                            'INSERT : *** %s row inserted into "%s" ***', tot_rows, table)
-
-        def insert_user_tables(ops, user_tabs=stmts.USER_TABS):
-            '''
-            Aggiunge le tabelle "cpv" e "province" non disponibili sul
-            portale ANAC.
-            '''
-            for tab, path in user_tabs:
-                if args.tables and tab not in args.tables:
-                    continue
-
-                name = os.path.basename(path)
-
-                if name in ops.loaded:
-                    logging.warning('"%s" already loaded', name)
-                    continue
-
-                ops.create(stmts.CREATE_USER_TABLES, tab, hash=True)
-
-                with open(path) as file:
-                    reader = ops.get_rows(file, ops.columns)
-                    rows = ops.load(reader, tab, file.name)
-
-                logging.info(
-                    'INSERT : *** %s row inserted into "%s" ***', rows, tab)
-
-        def make_db(ops):
-            down_load(ops)
-            insert_user_tables(ops)
-
-            logging.info('*** COMPLETED ***')
-
-        for tab in args.tables:
-            assert tab in stmts.CREATE_TABLES | stmts.CREATE_USER_TABLES,\
-                f'table "{tab}" not in database schema'
-
-        make_db(anac_ops)
+    main(args)

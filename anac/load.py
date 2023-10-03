@@ -22,10 +22,9 @@ class DataBase:
             buffered=True,
             autocommit=True)
 
-    def execute(self, stmt, params=(), many=False):
+    def execute(self, stmt, params=None, many=False):
         with self.pool.get_connection() as cnx:
             with cnx.cursor(dictionary=True) as cur:
-
                 if many:
                     cur.executemany(stmt, params)
                 else:
@@ -47,7 +46,6 @@ class Operations:
         except errors.Error as err:
             if err.errno == errorcode.ER_NO_SUCH_TABLE:
                 self.database.execute(stmts.CREATE_LOADED)
-
                 self.loaded = ()
 
                 logging.info('CREATE : "loaded"')
@@ -138,7 +136,6 @@ class Operations:
         Esegue l'insert nel db.
         '''
         columns = ','.join(self.columns)
-
         values = ','.join(f'%({c})s' for c in self.columns)
 
         stmt = stmts.INSERT_TABLES.format(table, columns, values)
@@ -146,20 +143,19 @@ class Operations:
 
         return rows
 
-    def load(self, reader, table, name=''):
+    def load(self, reader, table, name=None):
         '''
         Gestisce l'inserimento dei file ed aggiorna la tabella "loaded".
         '''
+        _name = f'"{name or ""}" '
+        logging.info('INSERT : %sinto "%s" ...', name and _name, table)
+
         batches = self.get_batches(reader, stmts.BATCH_SIZE)
-
-        name = name and ('"' + name + '"')
-
-        logging.info('INSERT : %s into "%s" ...', name, table)
 
         rows = 0
         for batch in tqdm(batches, unit=' batch'):
             rows += self.insert(table, batch)
 
-        self.database.execute(stmts.INSERT_LOADED, (table, name or None))
+        self.database.execute(stmts.INSERT_LOADED, (table, name))
 
         return rows
