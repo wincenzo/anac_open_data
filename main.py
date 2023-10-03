@@ -53,8 +53,7 @@ def download_and_load(ops, tables):
                 url, name = res['url'], f'{res["name"]}.json'
 
                 if name in ops.loaded:
-                    logging.warning(
-                        '"%s" already loaded', name)
+                    logging.warning('"%s" already loaded', name)
                     continue
 
                 ops.create(stmts.CREATE_TABLES, table, hash=True)
@@ -119,7 +118,7 @@ if __name__ == '__main__':
 
     dw_ld.add_argument(
         '-s', '--skip', nargs='*', default=['smartcig'], type=str, metavar='NAME',
-        help='provide tables name to avoid, default value: "smartcic". If called without values no tables are skipped')
+        help='provide tables name to avoid, default value: "smartcig". If called without values no tables are skipped')
 
     sintesi = subparsers.add_parser(
         'sintesi', prog='make_sintesi',
