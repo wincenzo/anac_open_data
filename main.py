@@ -43,7 +43,6 @@ def download_and_load(ops, tables):
             results = ckan.action.package_show(id=pack)
 
             for res in results['resources']:
-
                 is_json = res['format'] == 'JSON'
                 is_zip = res['mimetype'] == 'application/zip'
                 if not (is_json and is_zip):

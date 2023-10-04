@@ -35,7 +35,7 @@ class DataBase:
 class Operations:
     def __init__(self, database):
         self.database = database
-        self.columns = None
+        self.columns = ()
 
         try:
             self.loaded = tuple(
@@ -52,14 +52,6 @@ class Operations:
             else:
                 logging.exception(err)
                 sys.exit(1)
-
-    @property
-    def columns(self):
-        return self._columns
-
-    @columns.setter
-    def columns(self, value):
-        self._columns = value
 
     def get_columns(self, table):
         '''
