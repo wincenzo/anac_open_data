@@ -146,7 +146,8 @@ class Operations:
         '''
         Gestisce l'inserimento dei file ed aggiorna la tabella "loaded".
         '''
-        _name = f'"{name or ""}" '
+        name = name or ''
+        _name = f'"{name}" '
         logging.info('INSERT : %sinto "%s" ...', name and _name, table)
 
         batches = self.get_batches(reader, stmts.BATCH_SIZE)
