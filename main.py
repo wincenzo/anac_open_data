@@ -44,9 +44,9 @@ def download_and_load(ops, tables):
 
             for res in results['resources']:
 
-                format = res['format'] == 'JSON'
-                mimetype = res['mimetype'] == 'application/zip'
-                if not (format and mimetype):
+                is_json = res['format'] == 'JSON'
+                is_zip = res['mimetype'] == 'application/zip'
+                if not (is_json and is_zip):
                     continue
 
                 url, name = res['url'], f'{res["name"]}.json'
