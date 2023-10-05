@@ -72,14 +72,18 @@ class Operations:
         '''
         def fix(row):
             select = {}
+
             for k in sorted(row, key=len):
                 _k = k.replace('-', '_')
+
                 if refcols:
                     for col in sorted(refcols, key=len, reverse=True):
                         starts = _k.lower().startswith(col.lower())
+
                         if starts and col not in select:
                             select[col] = row[k] or None
                             break
+
                 else:
                     select[_k] = row[k] or None
 
@@ -116,10 +120,12 @@ class Operations:
             if hash:
                 columns = ','.join(self.columns)
                 hash_stmt = stmts.HASH_KEY.format(table, table, columns)
+
                 self.database.execute(hash_stmt)
 
             if key:
                 pk_stmt = stmts.ADD_ID.format(table, table)
+
                 self.database.execute(pk_stmt)
 
     def insert(self, table, data):
@@ -130,6 +136,7 @@ class Operations:
         values = ','.join(f'%({c})s' for c in self.columns)
 
         stmt = stmts.INSERT_TABLES.format(table, columns, values)
+
         rows = self.database.execute(stmt, data, many=True).rowcount
 
         return rows
