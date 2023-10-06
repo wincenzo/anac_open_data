@@ -36,6 +36,7 @@ def download_and_load(ops, tables):
 
         for table, pack in index(packages):
             tot_rows = 0
+            loaded = None
 
             if table not in tables:
                 continue
@@ -45,12 +46,13 @@ def download_and_load(ops, tables):
             for res in results['resources']:
                 is_json = res['format'] == 'JSON'
                 is_zip = res['mimetype'] == 'application/zip'
+
                 if not (is_json and is_zip):
                     continue
 
                 url, name = res['url'], f'{res["name"]}.json'
 
-                if name in ops.loaded:
+                if (loaded := name in ops.loaded):
                     logging.warning('"%s" already loaded', name)
                     continue
 
@@ -62,6 +64,7 @@ def download_and_load(ops, tables):
 
                         with (ZipFile(BytesIO(res.read())) as zfile,
                                 zfile.open(name) as file):
+
                             reader = ops.get_rows(file, ops.columns)
                             rows = ops.load(reader, table, file.name)
 
@@ -70,12 +73,12 @@ def download_and_load(ops, tables):
                 except StopIteration:
                     continue
 
-            if tot_rows:
+            if not loaded:
                 logging.info(
-                    'INSERT : *** %s row into "%s" ***', tot_rows, table)
+                    '*** %s row into "%s" ***', tot_rows, table)
 
 
-def insert_user_tables(ops, tables, user_tabs=stmts.USER_TABS):
+def add_user_tables(ops, tables, user_tabs=stmts.USER_TABS):
     '''
     Aggiunge le tabelle "cpv" e "province" non disponibili sul
     portale ANAC.
@@ -85,7 +88,7 @@ def insert_user_tables(ops, tables, user_tabs=stmts.USER_TABS):
             continue
 
         with open(path) as file:
-            if file.name in ops.loaded:
+            if (file.name in ops.loaded):
                 logging.warning('"%s" already loaded', file.name)
                 continue
 
@@ -95,7 +98,7 @@ def insert_user_tables(ops, tables, user_tabs=stmts.USER_TABS):
             rows = ops.load(reader, tab, file.name)
 
         logging.info(
-            'INSERT : *** %s row into "%s" ***', rows, tab)
+            '*** %s row into "%s" ***', rows, tab)
 
 
 if __name__ == '__main__':
@@ -105,21 +108,23 @@ if __name__ == '__main__':
         title='subcommands', dest='command', required=True)
 
     dw_ld = subparsers.add_parser(
-        'load', description='executes all steps for db creation: download files,\
-              create tables, insert data')
+        'load', description='executes all steps for db\
+            creation: download files, create tables, insert data')
 
     dw_ld.add_argument(
-        '-t', '--tables', nargs='*', type=str, metavar='NAME', default=[],
+        '-t', '--tables', nargs='*', type=str,
+        metavar='NAME', default=[],
         help='provide tables name to insert into db')
 
     dw_ld.add_argument(
-        '-s', '--skip', nargs='*', type=str, metavar='NAME', default=['smartcig'],
+        '-s', '--skip', nargs='*', type=str,
+        metavar='NAME', default=['smartcig'],
         help='provide tables name to skip, default value: "smartcig".\
-              If called without values no tables are skipped')
+            If called without values no tables are skipped')
 
     sintesi = subparsers.add_parser(
-        'sintesi', description='executes all steps to setup the table\
-              "sintesi" and create the view "sintesi_cpv"')
+        'sintesi', description='executes all steps to setup\
+            the table "sintesi" and create the view "sintesi_cpv"')
 
     args = parser.parse_args()
 
@@ -134,7 +139,7 @@ if __name__ == '__main__':
             to_load = set(args.tables or schema) - set(args.skip)
 
             download_and_load(anac_ops, to_load)
-            insert_user_tables(anac_ops, to_load)
+            add_user_tables(anac_ops, to_load)
 
         logging.info('*** COMPLETED ***')
 

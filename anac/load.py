@@ -47,7 +47,7 @@ class Operations:
                 self.database.execute(stmts.CREATE_LOADED)
                 self.loaded = ()
 
-                logging.info('CREATE : "loaded"')
+                logging.info('create "loaded"')
 
             else:
                 logging.exception(err)
@@ -115,7 +115,7 @@ class Operations:
         else:
             self.columns = self.get_columns(table)
 
-            logging.info('CREATE : "%s"', table)
+            logging.info('"%s"', table)
 
             if hash:
                 columns = ','.join(self.columns)
@@ -146,8 +146,8 @@ class Operations:
         Gestisce l'inserimento dei file ed aggiorna la tabella "loaded".
         '''
         name = name or ''
-        _name = f'"{name}" '
-        logging.info('INSERT : %sinto "%s" ...', name and _name, table)
+        quoted_name = f'"{name}" '
+        logging.info('%sinto "%s" ...', name and quoted_name, table)
 
         batches = self.get_batches(reader, stmts.BATCH_SIZE)
 
